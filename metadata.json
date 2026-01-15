@@ -1,0 +1,8 @@
+{
+  "name": "Club7 - Tu Mundo Privado",
+  "description": "Una red social privada y gamificada para 7 mejores amigos. Comparte, juega y diviértete en un espacio seguro.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
