@@ -95,9 +95,18 @@ const AppContent: React.FC = () => {
     <div className="w-full h-screen bg-gray-50 overflow-hidden font-sans relative">
       {/* Top Header (Sticky) */}
       {(!viewingUserId || activeTab === AppTab.PROFILE) && (
-        <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md z-30 flex items-center justify-between px-6 border-b border-gray-100">
-          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-pink-500">
-            Club7
+        <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-[#1a0533]/90 to-[#0a1628]/90 backdrop-blur-md z-30 flex items-center justify-between px-6 border-b border-white/10">
+          <h1
+            className="text-2xl font-bold"
+            style={{
+              fontFamily: "'Pacifico', cursive",
+              background: 'linear-gradient(90deg, #FF6B6B, #FFE66D, #4ECDC4, #45B7D1, #FF6B9D)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
+          >
+            BestieSocial
           </h1>
 
           <div className="flex items-center gap-2">

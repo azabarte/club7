@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LANDING_VIDEO_URLS } from '../constants';
-import { ArrowRight, Volume2, VolumeX, ChevronRight } from 'lucide-react';
+import { Volume2, VolumeX, ChevronRight } from 'lucide-react';
 
 interface LandingPageProps {
   onEnter: () => void;
@@ -14,7 +14,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
 
-  // Randomly select one video on component mount
   const [videoUrl] = useState(() => {
     const randomIndex = Math.floor(Math.random() * LANDING_VIDEO_URLS.length);
     return LANDING_VIDEO_URLS[randomIndex];
@@ -41,8 +40,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   };
 
   const getMaxSlide = () => {
-    if (!sliderRef.current) return 200;
-    return sliderRef.current.offsetWidth - 64; // 64px is the button width
+    if (!sliderRef.current) return 280;
+    return sliderRef.current.offsetWidth - 72;
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -50,58 +49,45 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
     e.preventDefault();
   };
 
-  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || !sliderRef.current) return;
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const rect = sliderRef.current.getBoundingClientRect();
-    const newX = Math.min(Math.max(0, clientX - rect.left - 32), getMaxSlide());
-    setSliderX(newX);
-  };
-
   const handleDragEnd = () => {
     if (!isDragging) return;
     setIsDragging(false);
 
-    // If dragged more than 80%, unlock
-    if (sliderX > getMaxSlide() * 0.8) {
+    if (sliderX > getMaxSlide() * 0.75) {
       setUnlocked(true);
       setSliderX(getMaxSlide());
-      setTimeout(() => {
-        onEnter();
-      }, 300);
+      setTimeout(() => onEnter(), 400);
     } else {
-      // Spring back
       setSliderX(0);
     }
   };
 
   useEffect(() => {
-    const handleMouseUp = () => handleDragEnd();
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging && sliderRef.current) {
         const rect = sliderRef.current.getBoundingClientRect();
-        const newX = Math.min(Math.max(0, e.clientX - rect.left - 32), getMaxSlide());
+        const newX = Math.min(Math.max(0, e.clientX - rect.left - 36), getMaxSlide());
         setSliderX(newX);
       }
     };
     const handleTouchMove = (e: TouchEvent) => {
       if (isDragging && sliderRef.current) {
         const rect = sliderRef.current.getBoundingClientRect();
-        const newX = Math.min(Math.max(0, e.touches[0].clientX - rect.left - 32), getMaxSlide());
+        const newX = Math.min(Math.max(0, e.touches[0].clientX - rect.left - 36), getMaxSlide());
         setSliderX(newX);
       }
     };
+    const handleEnd = () => handleDragEnd();
 
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mouseup', handleEnd);
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchend', handleMouseUp);
+    window.addEventListener('touchend', handleEnd);
     window.addEventListener('touchmove', handleTouchMove);
 
     return () => {
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleEnd);
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchend', handleMouseUp);
+      window.removeEventListener('touchend', handleEnd);
       window.removeEventListener('touchmove', handleTouchMove);
     };
   }, [isDragging, sliderX]);
@@ -109,7 +95,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const progress = sliderX / getMaxSlide();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628]">
       {/* Video Background */}
       <video
         ref={videoRef}
@@ -117,58 +103,97 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         loop
         playsInline
         muted={isMuted}
-        className="absolute top-0 left-0 w-full h-full object-cover"
+        className="absolute top-0 left-0 w-full h-full object-cover opacity-90"
       />
 
-      {/* Overlay Content */}
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1628]/80" />
+
+      {/* Content */}
       <div className="absolute inset-0 z-10 flex flex-col justify-between">
 
-        {/* Top Bar - Volume Control */}
-        <div className="mt-16 mr-6 flex justify-end">
-          <button
-            onClick={toggleMute}
-            className="bg-black/30 backdrop-blur-md p-3 rounded-full text-white/80 border border-white/10 hover:bg-black/50 transition-colors"
-          >
-            {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-          </button>
+        {/* Top Section - Title & Volume */}
+        <div className="pt-12 px-6">
+          {/* Title */}
+          <div className="text-center mb-8">
+            <h1
+              className="text-4xl md:text-5xl font-bold"
+              style={{
+                fontFamily: "'Pacifico', cursive",
+                background: 'linear-gradient(90deg, #FF6B6B 0%, #FFE66D 20%, #4ECDC4 40%, #45B7D1 60%, #FF6B9D 80%, #FF6B6B 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 4px 30px rgba(255,107,107,0.3)'
+              }}
+            >
+              BestieSocial
+            </h1>
+            <p className="text-white/60 text-sm mt-2 tracking-wider">Explore. Share. Safe.</p>
+          </div>
+
+          {/* Volume Button - lowered */}
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={toggleMute}
+              className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white/80 border border-white/20 hover:bg-white/20 transition-all"
+            >
+              {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+            </button>
+          </div>
         </div>
 
-        {/* Bottom Section - Slide to Unlock */}
-        <div className="w-full px-0">
+        {/* Bottom Section - Improved Slide to Unlock */}
+        <div className="w-full p-4 pb-8">
           <div
             ref={sliderRef}
-            className="relative w-full h-20 bg-black/40 backdrop-blur-xl overflow-hidden"
+            className="relative w-full h-16 rounded-full overflow-hidden"
+            style={{
+              background: 'linear-gradient(90deg, rgba(78,205,196,0.15) 0%, rgba(255,107,157,0.15) 100%)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              boxShadow: '0 4px 30px rgba(0,0,0,0.3), inset 0 0 20px rgba(78,205,196,0.1)'
+            }}
           >
-            {/* Sliding text */}
+            {/* Progress fill */}
+            <div
+              className="absolute top-0 left-0 h-full rounded-full transition-all"
+              style={{
+                width: `${sliderX + 72}px`,
+                background: 'linear-gradient(90deg, rgba(78,205,196,0.4) 0%, rgba(255,107,157,0.4) 100%)',
+                opacity: isDragging ? 1 : 0.7
+              }}
+            />
+
+            {/* Hint text */}
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              style={{ opacity: 1 - progress }}
+              style={{ opacity: 1 - progress * 1.5 }}
             >
-              <div className="flex items-center gap-2 text-white/70 text-lg font-medium animate-pulse">
+              <div className="flex items-center gap-1 text-white/50 text-sm font-medium">
                 <span>Desliza para entrar</span>
-                <ChevronRight className="w-5 h-5" />
-                <ChevronRight className="w-5 h-5 -ml-3" />
-                <ChevronRight className="w-5 h-5 -ml-3" />
+                <div className="flex animate-slide-hint">
+                  <ChevronRight size={18} className="text-white/40" />
+                  <ChevronRight size={18} className="-ml-2 text-white/30" />
+                  <ChevronRight size={18} className="-ml-2 text-white/20" />
+                </div>
               </div>
             </div>
 
-            {/* Progress fill */}
-            <div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500/50 to-pink-500/50 transition-all"
-              style={{ width: `${sliderX + 64}px` }}
-            />
-
             {/* Draggable button */}
             <div
-              className={`absolute top-2 left-2 w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center cursor-grab shadow-lg shadow-pink-500/30 transition-transform ${isDragging ? 'scale-110 cursor-grabbing' : ''} ${unlocked ? 'scale-125' : ''}`}
+              className={`absolute top-1 left-1 w-14 h-14 rounded-full flex items-center justify-center cursor-grab transition-transform ${isDragging ? 'scale-110 cursor-grabbing' : ''} ${unlocked ? 'scale-125' : ''}`}
               style={{
                 transform: `translateX(${sliderX}px)`,
-                transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                background: 'linear-gradient(135deg, #4ECDC4 0%, #45B7D1 50%, #FF6B9D 100%)',
+                boxShadow: unlocked
+                  ? '0 0 30px rgba(78,205,196,0.8), 0 0 60px rgba(255,107,157,0.5)'
+                  : '0 4px 20px rgba(78,205,196,0.5), 0 0 40px rgba(78,205,196,0.2)'
               }}
               onMouseDown={handleDragStart}
               onTouchStart={handleDragStart}
             >
-              <ArrowRight className="w-8 h-8 text-white" />
+              <ChevronRight size={28} className="text-white" />
             </div>
           </div>
         </div>

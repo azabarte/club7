@@ -56,12 +56,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628] flex items-center justify-center p-6">
             <div className="w-full max-w-sm">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-pink-400 to-yellow-400">
-                        Club7
+                    <h1
+                        className="text-4xl font-bold"
+                        style={{
+                            fontFamily: "'Pacifico', cursive",
+                            background: 'linear-gradient(90deg, #FF6B6B, #FFE66D, #4ECDC4, #45B7D1, #FF6B9D)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text'
+                        }}
+                    >
+                        BestieSocial
                     </h1>
                     <p className="text-white/60 mt-2">Tu mundo privado 🔐</p>
                 </div>
@@ -84,8 +93,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                                     <div
                                         key={i}
                                         className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl font-bold transition-all ${pin.length > i
-                                                ? 'bg-white/20 border-white text-white'
-                                                : 'bg-white/5 border-white/20 text-white/30'
+                                            ? 'bg-white/20 border-white text-white'
+                                            : 'bg-white/5 border-white/20 text-white/30'
                                             }`}
                                     >
                                         {pin[i] ? '●' : ''}
@@ -144,8 +153,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                             type="submit"
                             disabled={pin.length !== 4}
                             className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${pin.length === 4
-                                    ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg shadow-pink-500/30 active:scale-95'
-                                    : 'bg-white/10 text-white/40 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg shadow-pink-500/30 active:scale-95'
+                                : 'bg-white/10 text-white/40 cursor-not-allowed'
                                 }`}
                         >
                             Continuar <ArrowRight className="w-5 h-5" />
@@ -174,8 +183,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                                         onClick={() => handleMemberSelect(member.id)}
                                         disabled={isLoading}
                                         className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedMember === member.id
-                                                ? 'bg-white/20 border-white'
-                                                : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/30'
+                                            ? 'bg-white/20 border-white'
+                                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/30'
                                             } ${isLoading ? 'opacity-50' : ''}`}
                                     >
                                         <img
