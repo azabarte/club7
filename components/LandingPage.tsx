@@ -112,28 +112,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       {/* Content */}
       <div className="absolute inset-0 z-10 flex flex-col justify-between">
 
-        {/* Top Section - Title & Volume */}
+        {/* Top Section - Volume Button Only */}
         <div className="pt-12 px-6">
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h1
-              className="text-4xl md:text-5xl font-bold"
-              style={{
-                fontFamily: "'Pacifico', cursive",
-                background: 'linear-gradient(90deg, #FF6B6B 0%, #FFE66D 20%, #4ECDC4 40%, #45B7D1 60%, #FF6B9D 80%, #FF6B6B 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 4px 30px rgba(255,107,107,0.3)'
-              }}
-            >
-              BestieSocial
-            </h1>
-            <p className="text-white/60 text-sm mt-2 tracking-wider">Explore. Share. Safe.</p>
-          </div>
-
-          {/* Volume Button - lowered */}
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end">
             <button
               onClick={toggleMute}
               className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white/80 border border-white/20 hover:bg-white/20 transition-all"
