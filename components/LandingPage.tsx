@@ -7,99 +7,51 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
-  const video1Ref = useRef<HTMLVideoElement>(null);
-  const video2Ref = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [activeVideo, setActiveVideo] = useState<1 | 2>(1);
+
+  // Randomly select one video on component mount
+  const [videoUrl] = useState(() => {
+    const randomIndex = Math.floor(Math.random() * LANDING_VIDEO_URLS.length);
+    return LANDING_VIDEO_URLS[randomIndex];
+  });
 
   useEffect(() => {
-    const video1 = video1Ref.current;
-    const video2 = video2Ref.current;
-
-    if (!video1 || !video2) return;
-
-    // Set sources
-    video1.src = LANDING_VIDEO_URLS[0];
-    video2.src = LANDING_VIDEO_URLS[1];
-
-    // Preload both videos
-    video1.load();
-    video2.load();
-
-    // Start playing video1
-    video1.play().catch((error) => {
-      console.log("Autoplay blocked, falling back to muted", error);
-      setIsMuted(true);
-      video1.muted = true;
-      video2.muted = true;
-      video1.play();
-    });
+    if (videoRef.current) {
+      videoRef.current.play().catch((error) => {
+        console.log("Autoplay blocked, falling back to muted", error);
+        setIsMuted(true);
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play();
+        }
+      });
+    }
   }, []);
 
-  const handleVideo1Ended = () => {
-    const video1 = video1Ref.current;
-    const video2 = video2Ref.current;
-    if (!video1 || !video2) return;
-
-    // Start video2 immediately, then fade
-    video2.currentTime = 0;
-    video2.play();
-    setActiveVideo(2);
-
-    // Reset video1 for next cycle
-    video1.currentTime = 0;
-  };
-
-  const handleVideo2Ended = () => {
-    const video1 = video1Ref.current;
-    const video2 = video2Ref.current;
-    if (!video1 || !video2) return;
-
-    // Start video1 immediately, then fade
-    video1.currentTime = 0;
-    video1.play();
-    setActiveVideo(1);
-
-    // Reset video2 for next cycle
-    video2.currentTime = 0;
-  };
-
   const toggleMute = () => {
-    const video1 = video1Ref.current;
-    const video2 = video2Ref.current;
-    if (video1 && video2) {
-      video1.muted = !isMuted;
-      video2.muted = !isMuted;
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
   };
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black">
-      {/* Video 1 */}
+      {/* Video Background - loops single video */}
       <video
-        ref={video1Ref}
+        ref={videoRef}
+        src={videoUrl}
+        loop
         playsInline
         muted={isMuted}
-        onEnded={handleVideo1Ended}
-        className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-500 ${activeVideo === 1 ? 'opacity-100 z-1' : 'opacity-0 z-0'
-          }`}
-      />
-
-      {/* Video 2 */}
-      <video
-        ref={video2Ref}
-        playsInline
-        muted={isMuted}
-        onEnded={handleVideo2Ended}
-        className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-500 ${activeVideo === 2 ? 'opacity-100 z-1' : 'opacity-0 z-0'
-          }`}
+        className="absolute top-0 left-0 w-full h-full object-cover"
       />
 
       {/* Overlay Content */}
       <div className="absolute inset-0 z-10 flex flex-col justify-between p-6">
 
-        {/* Top Bar - Volume Control (moved down to not cover title) */}
+        {/* Top Bar - Volume Control (lowered to not cover title) */}
         <div className="mt-16 flex justify-end">
           <button
             onClick={toggleMute}
@@ -109,7 +61,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           </button>
         </div>
 
-        {/* Bottom Section - Enter Button (moved down more to not cover avatars) */}
+        {/* Bottom Section - Enter Button (lowered to not cover avatars) */}
         <div className="mb-4 w-full flex justify-center">
           <button
             onClick={onEnter}
