@@ -1,7 +1,10 @@
 import { User, Post, Message, Mission } from './types';
 
-// The requested video URL for the landing page
-export const LANDING_VIDEO_URL = "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/portadawebp.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9wb3J0YWRhd2VicC5tcDQiLCJpYXQiOjE3Njg1MDQxNDQsImV4cCI6MjA4Mzg2NDE0NH0.RkIqPgEqoc5SSTntzy7ZXGthOeD7-OFx-WDsh9Inr4s";
+// Array of landing page videos that alternate
+export const LANDING_VIDEO_URLS = [
+  "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/portada1.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9wb3J0YWRhMS5tcDQiLCJpYXQiOjE3Njg1OTIwNjgsImV4cCI6MjA4Mzk1MjA2OH0.PbciwkrszCye_eOpKW79JgU2FNiF1Qq2NdmNCEbm624",
+  "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/portada2.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9wb3J0YWRhMi5tcDQiLCJpYXQiOjE3Njg1OTIwOTMsImV4cCI6MjA4Mzk1MjA5M30.d77gryHSxlSbIfcKI-MPo38X76kFQXuCfwItEgE6y8A"
+];
 
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'Leo', avatar: 'https://picsum.photos/100/100?random=1', stickersUnlocked: ['🔥', '🚀'] },
