@@ -20,6 +20,7 @@ import {
     getReactionsForPost,
     subscribeToMessages,
     subscribeToPosts,
+    updateMemberAvatar,
 } from './supabase';
 
 interface StoreState {
@@ -48,6 +49,7 @@ interface StoreState {
     completeMissionAction: (missionId: string) => Promise<boolean>;
     toggleReaction: (postId: string, emoji: string) => Promise<void>;
     getMemberById: (id: string) => ClubMember | undefined;
+    updateAvatar: (avatarUrl: string) => Promise<boolean>;
 }
 
 const StoreContext = createContext<StoreState | null>(null);
@@ -215,6 +217,18 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     ): Promise<boolean> => {
         if (!currentUser) return false;
 
+        // Optimistic update - show message immediately
+        const tempId = `temp_${Date.now()}`;
+        const optimisticMessage = {
+            id: tempId,
+            user_id: currentUser.id,
+            type,
+            content: content || null,
+            media_url: null,
+            created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, optimisticMessage]);
+
         let mediaUrl: string | undefined;
         if (file) {
             mediaUrl = await uploadMedia(file, 'chat') || undefined;
@@ -222,8 +236,12 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
         const message = await sendMessage(currentUser.id, type, content, mediaUrl);
         if (message) {
-            // Realtime will handle adding to state
+            // Replace optimistic message with real one (or realtime will handle it)
+            setMessages(prev => prev.map(m => m.id === tempId ? message : m));
             return true;
+        } else {
+            // Remove optimistic message on failure
+            setMessages(prev => prev.filter(m => m.id !== tempId));
         }
         return false;
     };
@@ -283,6 +301,18 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return members.find(m => m.id === id);
     };
 
+    const updateAvatar = async (avatarUrl: string): Promise<boolean> => {
+        if (!currentUser) return false;
+
+        const updated = await updateMemberAvatar(currentUser.id, avatarUrl);
+        if (updated) {
+            setCurrentUser(updated);
+            setMembers(prev => prev.map(m => m.id === updated.id ? updated : m));
+            return true;
+        }
+        return false;
+    };
+
     const value: StoreState = {
         isAuthenticated,
         currentUser,
@@ -302,6 +332,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         completeMissionAction,
         toggleReaction,
         getMemberById,
+        updateAvatar,
     };
 
     return (

@@ -80,7 +80,7 @@ export async function verifyClubPin(pin: string): Promise<boolean> {
     .select('club_pin')
     .eq('id', 1)
     .single();
-  
+
   if (error) {
     console.error('Error verifying PIN:', error);
     return pin === '7777'; // Fallback
@@ -93,7 +93,7 @@ export async function getMembers(): Promise<ClubMember[]> {
     .from('club_members')
     .select('*')
     .order('name');
-  
+
   if (error) {
     console.error('Error fetching members:', error);
     return [];
@@ -107,8 +107,23 @@ export async function getMemberById(id: string): Promise<ClubMember | null> {
     .select('*')
     .eq('id', id)
     .single();
-  
+
   if (error) return null;
+  return data;
+}
+
+export async function updateMemberAvatar(memberId: string, avatarUrl: string): Promise<ClubMember | null> {
+  const { data, error } = await supabase
+    .from('club_members')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', memberId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating avatar:', error);
+    return null;
+  }
   return data;
 }
 
@@ -118,7 +133,7 @@ export async function getPosts(): Promise<Post[]> {
     .from('posts')
     .select('*')
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error('Error fetching posts:', error);
     return [];
@@ -144,7 +159,7 @@ export async function createPost(
     })
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error creating post:', error);
     return null;
@@ -158,7 +173,7 @@ export async function getReactionsForPost(postId: string): Promise<Reaction[]> {
     .from('reactions')
     .select('*')
     .eq('post_id', postId);
-  
+
   if (error) return [];
   return data || [];
 }
@@ -175,7 +190,7 @@ export async function addReaction(
       user_id: userId,
       emoji
     });
-  
+
   return !error;
 }
 
@@ -190,7 +205,7 @@ export async function removeReaction(
     .eq('post_id', postId)
     .eq('user_id', userId)
     .eq('emoji', emoji);
-  
+
   return !error;
 }
 
@@ -201,7 +216,7 @@ export async function getMessages(): Promise<Message[]> {
     .select('*')
     .order('created_at', { ascending: true })
     .limit(100);
-  
+
   if (error) {
     console.error('Error fetching messages:', error);
     return [];
@@ -225,7 +240,7 @@ export async function sendMessage(
     })
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error sending message:', error);
     return null;
@@ -240,7 +255,7 @@ export async function getMissions(): Promise<Mission[]> {
     .select('*')
     .eq('is_active', true)
     .order('xp_reward', { ascending: false });
-  
+
   if (error) {
     console.error('Error fetching missions:', error);
     return [];
@@ -253,7 +268,7 @@ export async function getMissionProgress(userId: string): Promise<MissionProgres
     .from('mission_progress')
     .select('*')
     .eq('user_id', userId);
-  
+
   if (error) return [];
   return data || [];
 }
@@ -272,7 +287,7 @@ export async function completeMission(
       completed: true,
       completed_at: new Date().toISOString()
     });
-  
+
   if (progressError) return false;
 
   // Update user XP and unlock sticker
@@ -281,12 +296,12 @@ export async function completeMission(
     .select('xp, stickers_unlocked')
     .eq('id', userId)
     .single();
-  
+
   if (member) {
     const newXp = (member.xp || 0) + mission.xp_reward;
     const newLevel = Math.floor(newXp / 200) + 1; // 200 XP per level
     const newStickers = [...(member.stickers_unlocked || [])];
-    
+
     if (mission.reward_sticker && !newStickers.includes(mission.reward_sticker)) {
       newStickers.push(mission.reward_sticker);
     }
