@@ -68,57 +68,43 @@ CREATE TABLE IF NOT EXISTS mission_progress (
     UNIQUE(user_id, mission_id)
 );
 -- ============================================
--- Seed Data: Initial 7 Club Members
+-- Seed Data: Initial 5 Club Members
 -- ============================================
 INSERT INTO club_members (name, avatar_url, stickers_unlocked, xp, level)
 VALUES (
-        'Leo',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Leo',
-        ARRAY ['🔥', '🚀'],
-        700,
+        'Javier',
+        'https://api.dicebear.com/7.x/adventurer/svg?seed=Javier&hair=short01&hairColor=0a0a0a',
+        ARRAY ['🎮', '⚽'],
+        720,
         5
     ),
     (
         'Sofía',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Sofia',
+        'https://api.dicebear.com/7.x/adventurer/svg?seed=Sofia&hair=long16&hairColor=2c1810',
         ARRAY ['🌸', '🦄'],
         850,
         6
     ),
     (
-        'Max',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Max',
-        ARRAY ['🎮', '🍕'],
-        500,
-        4
-    ),
-    (
-        'Lucía',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Lucia',
+        'Daniela',
+        'https://api.dicebear.com/7.x/adventurer/svg?seed=Daniela&hair=long01&hairColor=6a4420',
         ARRAY ['🎨', '⭐'],
-        620,
+        680,
         5
     ),
     (
-        'Hugo',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Hugo',
-        ARRAY ['⚽', '🏆'],
-        920,
+        'Carolina',
+        'https://api.dicebear.com/7.x/adventurer/svg?seed=Carolina&hair=long19&hairColor=6a4420',
+        ARRAY ['🎵', '🎧'],
+        930,
         6
     ),
     (
-        'Emma',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Emma',
-        ARRAY ['🎵', '🎧'],
-        780,
-        5
-    ),
-    (
-        'Dani',
-        'https://api.dicebear.com/7.x/adventurer/svg?seed=Dani',
-        ARRAY ['🐱', '🍩'],
-        430,
-        3
+        'Andrea',
+        'https://api.dicebear.com/7.x/adventurer/svg?seed=Andrea&hair=long13&hairColor=6a4420',
+        ARRAY ['📚', '🌈'],
+        540,
+        4
     );
 -- Initial club config
 INSERT INTO club_config (id, club_pin, club_name)
