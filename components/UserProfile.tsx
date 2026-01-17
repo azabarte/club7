@@ -100,9 +100,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
           {isCurrentUser && (
             <button
               onClick={() => setShowAvatarPicker(true)}
-              className="absolute -right-2 top-0 bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] p-2 rounded-full text-white shadow-lg hover:scale-110 transition-transform"
+              className="absolute -right-2 -top-2 bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] p-2.5 rounded-full text-white shadow-lg hover:scale-110 transition-transform z-10"
             >
-              <Camera size={16} />
+              <Camera size={20} />
             </button>
           )}
         </div>
