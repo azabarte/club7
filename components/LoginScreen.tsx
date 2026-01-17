@@ -177,7 +177,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                             </p>
 
                             <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
-                                {members.map((member) => (
+                                {/* Filter out admin users from regular login selection */}
+                                {members.filter(m => !m.is_admin).map((member) => (
                                     <button
                                         key={member.id}
                                         onClick={() => handleMemberSelect(member.id)}

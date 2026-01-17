@@ -75,7 +75,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
       {/* Stories / Active Members */}
       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-        {members.map((member) => (
+        {/* Filter out admin users unless current user is admin */}
+        {members.filter(m => currentUser?.is_admin || !m.is_admin).map((member) => (
           <button
             key={member.id}
             onClick={() => onUserClick(member.id)}
@@ -213,8 +214,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 <button
                   onClick={() => setEmojiPickerOpenFor(emojiPickerOpenFor === post.id ? null : post.id)}
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${emojiPickerOpenFor === post.id
-                      ? 'bg-indigo-500 text-white'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-500'
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-gray-50 hover:bg-gray-100 text-gray-500'
                     }`}
                 >
                   <Smile size={18} />
