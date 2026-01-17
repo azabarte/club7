@@ -39,8 +39,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const maxRecordingTimeRef = useRef<NodeJS.Timeout | null>(null);
 
   const stickers = ['🔥', '❤️', '😍', '🤩', '🎉', '✨', '🌈', '🦄', '⭐', '🎭'];
+  const MAX_RECORDING_SECONDS = 30; // Max video duration
 
   // Initialize camera
   useEffect(() => {
@@ -61,7 +63,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
       }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } }, // Reduced resolution for smaller files
         audio: true
       });
       setStream(mediaStream);
@@ -162,7 +164,15 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
     if (!stream) return;
 
     chunksRef.current = [];
-    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+    // Use lower bitrate for smaller file size (500kbps video + 64kbps audio)
+    const options: MediaRecorderOptions = {
+      mimeType: 'video/webm',
+      videoBitsPerSecond: 500000,  // 500kbps - much smaller files
+      audioBitsPerSecond: 64000    // 64kbps audio
+    };
+
+    const mediaRecorder = new MediaRecorder(stream, options);
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -175,6 +185,11 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
       setPreview(URL.createObjectURL(blob));
       setStep('edit');
       stopCamera();
+
+      // Clear max time timeout
+      if (maxRecordingTimeRef.current) {
+        clearTimeout(maxRecordingTimeRef.current);
+      }
     };
 
     mediaRecorder.start();
@@ -182,9 +197,15 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
     setIsRecording(true);
     setRecordingTime(0);
 
+    // Count up timer
     recordingIntervalRef.current = setInterval(() => {
       setRecordingTime(prev => prev + 1);
     }, 1000);
+
+    // Auto-stop after max duration
+    maxRecordingTimeRef.current = setTimeout(() => {
+      stopRecording();
+    }, MAX_RECORDING_SECONDS * 1000);
   };
 
   const stopRecording = () => {
@@ -193,6 +214,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
       setIsRecording(false);
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
+      }
+      if (maxRecordingTimeRef.current) {
+        clearTimeout(maxRecordingTimeRef.current);
       }
     }
   };

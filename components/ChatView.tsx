@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
-import { Send, Image as ImageIcon, Mic, Loader2, Smile, Trash2 } from 'lucide-react';
+import { Send, Image as ImageIcon, Mic, Loader2, Smile, Trash2, Square, Play, Pause } from 'lucide-react';
 import { Message } from '../lib/supabase';
 
 const ChatView: React.FC = () => {
@@ -8,8 +8,13 @@ const ChatView: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [audioRecordingTime, setAudioRecordingTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -55,9 +60,69 @@ const ChatView: React.FC = () => {
     }
   };
 
+  // Audio recording functions
+  const startAudioRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+        audioBitsPerSecond: 64000 // Keep file size small
+      });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+
+        // Send the audio message
+        setIsSending(true);
+        await sendNewMessage('audio', undefined, file);
+        setIsSending(false);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecordingAudio(true);
+      setAudioRecordingTime(0);
+
+      // Update recording time
+      recordingIntervalRef.current = setInterval(() => {
+        setAudioRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error starting audio recording:', error);
+      alert('No se pudo acceder al micrófono. Verifica los permisos.');
+    }
+  };
+
+  const stopAudioRecording = () => {
+    if (mediaRecorderRef.current && isRecordingAudio) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingAudio(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  };
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const quickStickers = ['🔥', '❤️', '😂', '🤩', '👍', '🎉', '😍', '🙌'];
@@ -78,31 +143,51 @@ const ChatView: React.FC = () => {
 
   const onlineCount = Math.min(members.length, Math.floor(Math.random() * 4) + 2);
 
-  return (
-    <div className="flex flex-col h-full pt-20 pb-20 bg-gray-50">
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*"
-        onChange={handleImageSelect}
-      />
+  // Audio player component
+  const AudioPlayer: React.FC<{ url: string }> = ({ url }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
 
-      {/* Chat Header */}
-      <div className="px-4 mb-4">
-        <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="flex -space-x-3">
-            {members.slice(0, 4).map(m => (
-              <img
-                key={m.id}
-                src={m.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${m.name}`}
-                className="w-10 h-10 rounded-full border-2 border-white bg-gray-100"
-                alt={m.name}
-              />
-            ))}
-            {members.length > 4 && (
-              <div className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-500">
-                +{members.length - 4}
+    const togglePlay = () => {
+      if (audioRef.current) {
+        if (isPlaying) {
+          audioRef.current.pause();
+        } else {
+          audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+      }
+    };
+
+    return (
+      <div className="flex items-center gap-2 min-w-[120px]">
+        <audio ref={audioRef} src={url} onEnded={() => setIsPlaying(false)} />
+        <button
+          onClick={togglePlay}
+          className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+        >
+          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+        </button>
+        <div className="flex-1 h-1 bg-white/30 rounded-full">
+          <div className="h-full w-0 bg-white rounded-full" />
+        </div>
+        <span className="text-xs opacity-70">🎵</span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="pt-16 pb-24 h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="bg-white p-4 shadow-sm border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center text-2xl shadow-md">
+              💬
+            </div>
+            {onlineCount > 0 && (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold">
+                {onlineCount}
               </div>
             )}
           </div>
@@ -113,17 +198,19 @@ const ChatView: React.FC = () => {
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-4">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-5xl mb-3">💬</div>
-            <p className="text-gray-500 font-medium">¡Empieza la conversación!</p>
-            <p className="text-gray-400 text-sm">Envía el primer mensaje al grupo</p>
+            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
           </div>
         ) : (
           Object.entries(groupedMessages).map(([date, msgs]) => (
@@ -158,6 +245,9 @@ const ChatView: React.FC = () => {
                           {msg.type === 'image' && msg.media_url && (
                             <img src={msg.media_url} className="rounded-xl max-w-full" alt="Imagen" />
                           )}
+                          {msg.type === 'audio' && msg.media_url && (
+                            <AudioPlayer url={msg.media_url} />
+                          )}
                         </div>
                         {/* Delete button - visible for admins or message owner */}
                         {(currentUser?.is_admin || isMe) && (
@@ -187,9 +277,9 @@ const ChatView: React.FC = () => {
       {showEmojis && (
         <div className="px-4 mb-2">
           <div className="bg-white rounded-2xl p-3 shadow-lg border border-gray-100 flex gap-2 overflow-x-auto">
-            {quickStickers.map(emoji => (
+            {quickStickers.map((emoji, i) => (
               <button
-                key={emoji}
+                key={i}
                 onClick={() => handleSendSticker(emoji)}
                 disabled={isSending}
                 className="w-12 h-12 rounded-xl bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-2xl transition-colors active:scale-95"
@@ -203,16 +293,35 @@ const ChatView: React.FC = () => {
 
       {/* Input Area */}
       <div className="p-4">
+        {/* Recording indicator */}
+        {isRecordingAudio && (
+          <div className="mb-2 bg-red-50 border border-red-200 rounded-full px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-600 font-medium">Grabando audio...</span>
+              <span className="text-red-500 text-sm">{formatRecordingTime(audioRecordingTime)}</span>
+            </div>
+            <button
+              onClick={stopAudioRecording}
+              className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium hover:bg-red-600 flex items-center gap-1"
+            >
+              <Square size={12} fill="white" />
+              Enviar
+            </button>
+          </div>
+        )}
+
         <div className="bg-white rounded-full p-2 pl-4 flex items-center shadow-lg border border-gray-100">
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={isSending}
+            disabled={isSending || isRecordingAudio}
             className="p-2 text-gray-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
           >
             <ImageIcon size={20} />
           </button>
           <button
             onClick={() => setShowEmojis(!showEmojis)}
+            disabled={isRecordingAudio}
             className={`p-2 transition-colors ${showEmojis ? 'text-indigo-600' : 'text-gray-400 hover:text-indigo-600'}`}
           >
             <Smile size={20} />
@@ -223,12 +332,25 @@ const ChatView: React.FC = () => {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isSending}
+            disabled={isSending || isRecordingAudio}
             className="flex-1 bg-transparent border-none outline-none px-2 text-gray-700 placeholder-gray-400"
           />
+
+          {/* Audio record button - show when no text */}
+          {!inputText.trim() && !isRecordingAudio && (
+            <button
+              onClick={startAudioRecording}
+              disabled={isSending}
+              className="p-2 text-gray-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+              title="Grabar audio"
+            >
+              <Mic size={20} />
+            </button>
+          )}
+
           <button
             onClick={handleSend}
-            disabled={!inputText.trim() || isSending}
+            disabled={!inputText.trim() || isSending || isRecordingAudio}
             className={`w-10 h-10 rounded-full flex items-center justify-center ml-2 shadow-md transition-all ${inputText.trim() && !isSending
               ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white active:scale-95'
               : 'bg-gray-200 text-gray-400'
