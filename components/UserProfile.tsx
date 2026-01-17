@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { ClubMember, Post } from '../lib/supabase';
-import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X } from 'lucide-react';
+import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2 } from 'lucide-react';
 
 interface UserProfileProps {
   user: ClubMember;
@@ -27,9 +27,13 @@ const avatarOptions = [
 ];
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
-  const { currentUser, updateAvatar } = useStore();
+  const { currentUser, updateAvatar, addNewMember, members } = useStore();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [createSuccess, setCreateSuccess] = useState(false);
 
   const userPosts = posts
     .filter(p => p.user_id === user.id)
@@ -49,6 +53,22 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
       setShowAvatarPicker(false);
     }
   };
+
+  const handleCreateUser = async () => {
+    if (!newUserName.trim() || isCreatingUser) return;
+
+    setIsCreatingUser(true);
+    const member = await addNewMember(newUserName.trim());
+    setIsCreatingUser(false);
+
+    if (member) {
+      setNewUserName('');
+      setCreateSuccess(true);
+      setTimeout(() => setCreateSuccess(false), 3000);
+    }
+  };
+
+  const isAdmin = currentUser?.is_admin;
 
   return (
     <div className="pt-20 pb-24 bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628] min-h-screen overflow-y-auto">
@@ -89,15 +109,32 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
 
         <h1 className="text-2xl font-bold text-white mt-4">{user.name}</h1>
 
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
           <div className="bg-white/10 text-white/80 px-4 py-1 rounded-full text-xs font-bold border border-white/20">
             {isCurrentUser ? 'Eres tú 😎' : 'Miembro BestieSocial 🌟'}
           </div>
+          {user.is_admin && (
+            <div className="flex items-center gap-1 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-bold border border-purple-500/30">
+              <Shield size={12} />
+              Admin
+            </div>
+          )}
           <div className="flex items-center gap-1 bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full text-xs font-bold border border-amber-500/30">
             <Sparkles size={12} />
             {user.xp || 0} XP
           </div>
         </div>
+
+        {/* Admin Panel Button - only for admin users on their own profile */}
+        {isCurrentUser && isAdmin && (
+          <button
+            onClick={() => setShowAdminPanel(true)}
+            className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-full font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg"
+          >
+            <UserPlus size={18} />
+            Gestionar Usuarios
+          </button>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 w-full mt-8 mb-8">
@@ -212,6 +249,88 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
                 Actualizando avatar...
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Panel Modal */}
+      {showAdminPanel && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-3xl p-6 border border-white/10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Shield size={20} className="text-purple-400" />
+                Panel de Admin
+              </h2>
+              <button
+                onClick={() => setShowAdminPanel(false)}
+                className="text-white/60 hover:text-white"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Create New User Section */}
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">Añadir Usuario</h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nombre del usuario..."
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#4ECDC4]"
+                />
+                <button
+                  onClick={handleCreateUser}
+                  disabled={!newUserName.trim() || isCreatingUser}
+                  className="bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white px-4 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center min-w-[50px]"
+                >
+                  {isCreatingUser ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <UserPlus size={20} />
+                  )}
+                </button>
+              </div>
+              {createSuccess && (
+                <div className="mt-2 text-green-400 text-sm flex items-center gap-1">
+                  <Check size={16} />
+                  ¡Usuario creado correctamente!
+                </div>
+              )}
+            </div>
+
+            {/* Current Members List */}
+            <div>
+              <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">
+                Miembros ({members.length})
+              </h3>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {members.map((member) => (
+                  <div key={member.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10">
+                    <img
+                      src={member.avatar_url || `https://api.dicebear.com/9.x/lorelei/svg?seed=${member.name}`}
+                      alt={member.name}
+                      className="w-10 h-10 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <span className="text-white font-medium">{member.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-white/50">
+                        <span>Lvl {member.level || 1}</span>
+                        <span>•</span>
+                        <span>{member.xp || 0} XP</span>
+                      </div>
+                    </div>
+                    {member.is_admin && (
+                      <div className="bg-purple-500/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                        Admin
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
