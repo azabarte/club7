@@ -20,6 +20,7 @@ export interface ClubMember {
   stickers_unlocked: string[];
   xp: number;
   level: number;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -366,6 +367,83 @@ export function subscribeToPosts(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'posts' },
       (payload) => callback(payload.new as Post)
+    )
+    .subscribe();
+}
+
+// ============================================
+// Admin Functions
+// ============================================
+
+export async function deleteMessage(messageId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('messages')
+    .delete()
+    .eq('id', messageId);
+
+  if (error) {
+    console.error('Error deleting message:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deletePost(postId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', postId);
+
+  if (error) {
+    console.error('Error deleting post:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function createMember(name: string): Promise<ClubMember | null> {
+  const { data, error } = await supabase
+    .from('club_members')
+    .insert({
+      name,
+      xp: 0,
+      level: 1,
+      stickers_unlocked: [],
+      is_admin: false
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating member:', error);
+    return null;
+  }
+  return data;
+}
+
+// Realtime subscriptions for deletes
+export function subscribeToMessageDeletes(
+  callback: (messageId: string) => void
+) {
+  return supabase
+    .channel('messages-delete')
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'messages' },
+      (payload) => callback((payload.old as any).id)
+    )
+    .subscribe();
+}
+
+export function subscribeToPostDeletes(
+  callback: (postId: string) => void
+) {
+  return supabase
+    .channel('posts-delete')
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'posts' },
+      (payload) => callback((payload.old as any).id)
     )
     .subscribe();
 }

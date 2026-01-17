@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
-import { Send, Image as ImageIcon, Mic, Loader2, Smile } from 'lucide-react';
+import { Send, Image as ImageIcon, Mic, Loader2, Smile, Trash2 } from 'lucide-react';
+import { Message } from '../lib/supabase';
 
 const ChatView: React.FC = () => {
-  const { currentUser, members, messages, sendNewMessage, isLoading } = useStore();
+  const { currentUser, members, messages, sendNewMessage, isLoading, deleteMessageAction } = useStore();
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
@@ -62,12 +63,18 @@ const ChatView: React.FC = () => {
   const quickStickers = ['🔥', '❤️', '😂', '🤩', '👍', '🎉', '😍', '🙌'];
 
   // Group messages by date
-  const groupedMessages = messages.reduce((groups: Record<string, typeof messages>, msg) => {
+  const groupedMessages = messages.reduce((groups: Record<string, Message[]>, msg) => {
     const date = new Date(msg.created_at).toDateString();
     if (!groups[date]) groups[date] = [];
     groups[date].push(msg);
     return groups;
   }, {});
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este mensaje?')) {
+      await deleteMessageAction(messageId);
+    }
+  };
 
   const onlineCount = Math.min(members.length, Math.floor(Math.random() * 4) + 2);
 
@@ -100,7 +107,7 @@ const ChatView: React.FC = () => {
             )}
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-800">El Club Secreto 🤫</h3>
+            <h3 className="font-bold text-gray-800">BestieSocial Chat 💬</h3>
             <p className="text-xs text-green-500 font-bold">● {onlineCount} en línea</p>
           </div>
         </div>
@@ -129,7 +136,7 @@ const ChatView: React.FC = () => {
                 const user = getMember(msg.user_id);
 
                 return (
-                  <div key={msg.id} className={`flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                  <div key={msg.id} className={`flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} group`}>
                     {!isMe && (
                       <img
                         src={user?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.name || 'user'}`}
@@ -141,14 +148,26 @@ const ChatView: React.FC = () => {
                       {!isMe && (
                         <span className="text-xs text-gray-400 mb-1 ml-2 font-medium">{user?.name}</span>
                       )}
-                      <div className={`p-3 rounded-2xl ${isMe
+                      <div className="relative">
+                        <div className={`p-3 rounded-2xl ${isMe
                           ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-tr-none'
                           : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none shadow-sm'
-                        }`}>
-                        {msg.type === 'text' && <p className="break-words">{msg.content}</p>}
-                        {msg.type === 'sticker' && <span className="text-5xl">{msg.content}</span>}
-                        {msg.type === 'image' && msg.media_url && (
-                          <img src={msg.media_url} className="rounded-xl max-w-full" alt="Imagen" />
+                          }`}>
+                          {msg.type === 'text' && <p className="break-words">{msg.content}</p>}
+                          {msg.type === 'sticker' && <span className="text-5xl">{msg.content}</span>}
+                          {msg.type === 'image' && msg.media_url && (
+                            <img src={msg.media_url} className="rounded-xl max-w-full" alt="Imagen" />
+                          )}
+                        </div>
+                        {/* Admin delete button */}
+                        {currentUser?.is_admin && (
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                            title="Eliminar mensaje"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         )}
                       </div>
                       <span className={`text-[10px] text-gray-400 mt-1 ${isMe ? 'mr-2' : 'ml-2'}`}>
@@ -211,8 +230,8 @@ const ChatView: React.FC = () => {
             onClick={handleSend}
             disabled={!inputText.trim() || isSending}
             className={`w-10 h-10 rounded-full flex items-center justify-center ml-2 shadow-md transition-all ${inputText.trim() && !isSending
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white active:scale-95'
-                : 'bg-gray-200 text-gray-400'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white active:scale-95'
+              : 'bg-gray-200 text-gray-400'
               }`}
           >
             {isSending ? (

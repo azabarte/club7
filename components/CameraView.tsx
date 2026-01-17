@@ -53,6 +53,13 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
   const startCamera = async () => {
     try {
       setCameraError(null);
+
+      // Check if getUserMedia is available (requires HTTPS)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError('Tu navegador no soporta la cámara. Asegúrate de estar usando HTTPS.');
+        return;
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true
@@ -61,9 +68,23 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
-      setCameraError('No se pudo acceder a la cámara. Verifica los permisos.');
+
+      // Provide specific error messages based on the error type
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setCameraError('Permiso de cámara denegado. Ve a la configuración de tu navegador y permite el acceso a la cámara.');
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        setCameraError('No se encontró ninguna cámara en tu dispositivo.');
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        setCameraError('La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.');
+      } else if (error.name === 'OverconstrainedError') {
+        setCameraError('La cámara no soporta la configuración solicitada.');
+      } else if (error.name === 'TypeError') {
+        setCameraError('Error de configuración. Asegúrate de estar usando HTTPS.');
+      } else {
+        setCameraError('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+      }
     }
   };
 
@@ -298,8 +319,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
                     key={filter.id}
                     onClick={() => setSelectedFilter(filter.id)}
                     className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all ${selectedFilter === filter.id
-                        ? 'bg-white/30 scale-110 ring-2 ring-white'
-                        : 'bg-black/30'
+                      ? 'bg-white/30 scale-110 ring-2 ring-white'
+                      : 'bg-black/30'
                       }`}
                   >
                     {filter.name}
@@ -330,8 +351,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
                 onTouchEnd={stopRecording}
                 onClick={!isRecording ? handleCapture : undefined}
                 className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${isRecording
-                    ? 'border-red-500 bg-red-500/20'
-                    : 'border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                  ? 'border-red-500 bg-red-500/20'
+                  : 'border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
                   }`}
               >
                 <div className={`rounded-full transition-all ${isRecording ? 'w-8 h-8 bg-red-500 rounded-lg' : 'w-16 h-16 bg-white'
@@ -400,8 +421,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
                   key={sticker}
                   onClick={() => toggleSticker(sticker)}
                   className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${selectedStickers.includes(sticker)
-                      ? 'bg-gradient-to-br from-[#4ECDC4] to-[#FF6B9D] scale-110'
-                      : 'bg-gray-800 hover:bg-gray-700'
+                    ? 'bg-gradient-to-br from-[#4ECDC4] to-[#FF6B9D] scale-110'
+                    : 'bg-gray-800 hover:bg-gray-700'
                     }`}
                 >
                   {sticker}

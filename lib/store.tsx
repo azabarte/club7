@@ -20,7 +20,12 @@ import {
     getReactionsForPost,
     subscribeToMessages,
     subscribeToPosts,
+    subscribeToMessageDeletes,
+    subscribeToPostDeletes,
     updateMemberAvatar,
+    deleteMessage as deleteMessageApi,
+    deletePost as deletePostApi,
+    createMember,
 } from './supabase';
 
 interface StoreState {
@@ -50,6 +55,9 @@ interface StoreState {
     toggleReaction: (postId: string, emoji: string) => Promise<void>;
     getMemberById: (id: string) => ClubMember | undefined;
     updateAvatar: (avatarUrl: string) => Promise<boolean>;
+    deleteMessageAction: (messageId: string) => Promise<boolean>;
+    deletePostAction: (postId: string) => Promise<boolean>;
+    addNewMember: (name: string) => Promise<ClubMember | null>;
 }
 
 const StoreContext = createContext<StoreState | null>(null);
@@ -115,7 +123,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
     // Check for saved session on mount
     useEffect(() => {
-        const savedUserId = localStorage.getItem('club7_user_id');
+        const savedUserId = localStorage.getItem('bestiesocial_user_id');
         if (savedUserId) {
             getMembers().then((membersData) => {
                 const user = membersData.find(m => m.id === savedUserId);
@@ -136,11 +144,30 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         if (!isAuthenticated) return;
 
         const messagesChannel = subscribeToMessages((newMessage) => {
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prev => {
+                // Check if message already exists (avoid duplicates from optimistic updates)
+                const exists = prev.some(m => m.id === newMessage.id);
+                if (exists) return prev;
+                return [...prev, newMessage];
+            });
         });
 
         const postsChannel = subscribeToPosts((newPost) => {
-            setPosts(prev => [newPost, ...prev]);
+            setPosts(prev => {
+                // Check if post already exists (avoid duplicates from optimistic updates)
+                const exists = prev.some(p => p.id === newPost.id);
+                if (exists) return prev;
+                return [newPost, ...prev];
+            });
+        });
+
+        // Subscribe to deletes for realtime sync
+        const messagesDeleteChannel = subscribeToMessageDeletes((messageId) => {
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        });
+
+        const postsDeleteChannel = subscribeToPostDeletes((postId) => {
+            setPosts(prev => prev.filter(p => p.id !== postId));
         });
 
         // Initial data load
@@ -149,6 +176,8 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return () => {
             messagesChannel.unsubscribe();
             postsChannel.unsubscribe();
+            messagesDeleteChannel.unsubscribe();
+            postsDeleteChannel.unsubscribe();
         };
     }, [isAuthenticated, refreshData]);
 
@@ -164,7 +193,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         setCurrentUser(user);
         setIsAuthenticated(true);
         setMembers(membersData);
-        localStorage.setItem('club7_user_id', user.id);
+        localStorage.setItem('bestiesocial_user_id', user.id);
 
         return true;
     };
@@ -172,7 +201,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const logout = () => {
         setCurrentUser(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('club7_user_id');
+        localStorage.removeItem('bestiesocial_user_id');
     };
 
     const addNewPost = async (
@@ -313,6 +342,31 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return false;
     };
 
+    // Admin actions
+    const deleteMessageAction = async (messageId: string): Promise<boolean> => {
+        const success = await deleteMessageApi(messageId);
+        if (success) {
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        }
+        return success;
+    };
+
+    const deletePostAction = async (postId: string): Promise<boolean> => {
+        const success = await deletePostApi(postId);
+        if (success) {
+            setPosts(prev => prev.filter(p => p.id !== postId));
+        }
+        return success;
+    };
+
+    const addNewMember = async (name: string): Promise<ClubMember | null> => {
+        const member = await createMember(name);
+        if (member) {
+            setMembers(prev => [...prev, member]);
+        }
+        return member;
+    };
+
     const value: StoreState = {
         isAuthenticated,
         currentUser,
@@ -333,6 +387,9 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         toggleReaction,
         getMemberById,
         updateAvatar,
+        deleteMessageAction,
+        deletePostAction,
+        addNewMember,
     };
 
     return (

@@ -24,7 +24,7 @@ const AppContent: React.FC = () => {
       <div className="w-full h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Cargando Club7...</p>
+          <p className="text-white/60">Cargando BestieSocial...</p>
         </div>
       </div>
     );

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Post } from '../lib/supabase';
-import { Heart, MessageCircle, MoreHorizontal, Film, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X } from 'lucide-react';
 
 interface FeedViewProps {
   posts: Post[];
@@ -9,7 +9,8 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
-  const { members, currentUser, postReactions, toggleReaction, isLoading } = useStore();
+  const { members, currentUser, postReactions, toggleReaction, isLoading, deletePostAction } = useStore();
+  const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -29,6 +30,13 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
   const handleReaction = async (postId: string, emoji: string) => {
     await toggleReaction(postId, emoji);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta publicación?')) {
+      await deletePostAction(postId);
+      setMenuOpenForPost(null);
+    }
   };
 
   const quickEmojis = ['❤️', '🔥', '😍', '😂', '🤩'];
@@ -91,7 +99,35 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                   <span className="text-xs text-gray-400">{formatTimeAgo(post.created_at)}</span>
                 </div>
               </button>
-              <button className="text-gray-400 hover:text-gray-600"><MoreHorizontal /></button>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpenForPost(menuOpenForPost === post.id ? null : post.id)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <MoreHorizontal />
+                </button>
+                {/* Dropdown menu */}
+                {menuOpenForPost === post.id && (
+                  <div className="absolute right-0 top-8 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-10 min-w-[140px]">
+                    {currentUser?.is_admin && (
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="w-full px-4 py-2 text-left text-red-500 hover:bg-red-50 flex items-center gap-2 text-sm"
+                      >
+                        <Trash2 size={16} />
+                        Eliminar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setMenuOpenForPost(null)}
+                      className="w-full px-4 py-2 text-left text-gray-500 hover:bg-gray-50 flex items-center gap-2 text-sm"
+                    >
+                      <X size={16} />
+                      Cerrar
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="relative aspect-[4/5] bg-gray-100">
@@ -124,8 +160,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                       key={emoji}
                       onClick={() => handleReaction(post.id, emoji)}
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${isActive
-                          ? 'bg-indigo-100 scale-110 shadow-sm'
-                          : 'bg-gray-50 hover:bg-gray-100'
+                        ? 'bg-indigo-100 scale-110 shadow-sm'
+                        : 'bg-gray-50 hover:bg-gray-100'
                         }`}
                     >
                       {emoji}

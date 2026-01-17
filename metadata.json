@@ -1,6 +1,6 @@
 {
-  "name": "Club7 - Tu Mundo Privado",
-  "description": "Una red social privada y gamificada para 7 mejores amigos. Comparte, juega y diviértete en un espacio seguro.",
+  "name": "BestieSocial",
+  "description": "Tu red social privada y gamificada. Comparte, juega y diviértete con tus mejores amigos en un espacio seguro.",
   "requestFramePermissions": [
     "camera",
     "microphone"
