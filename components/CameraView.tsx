@@ -165,22 +165,56 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
 
     chunksRef.current = [];
 
-    // Use lower bitrate for smaller file size (500kbps video + 64kbps audio)
-    const options: MediaRecorderOptions = {
-      mimeType: 'video/webm',
-      videoBitsPerSecond: 500000,  // 500kbps - much smaller files
-      audioBitsPerSecond: 64000    // 64kbps audio
-    };
+    // Detect supported mimeType for better browser compatibility
+    const mimeTypes = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4'
+    ];
 
-    const mediaRecorder = new MediaRecorder(stream, options);
+    let selectedMimeType = '';
+    for (const mimeType of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        selectedMimeType = mimeType;
+        break;
+      }
+    }
+
+    if (!selectedMimeType) {
+      console.error('No supported video mimeType found');
+      alert('Tu navegador no soporta grabación de video. Prueba con Chrome o Firefox.');
+      return;
+    }
+
+    // Build options with fallback - some browsers don't support bitrate options
+    let mediaRecorder: MediaRecorder;
+    try {
+      const options: MediaRecorderOptions = {
+        mimeType: selectedMimeType,
+        videoBitsPerSecond: 500000,
+        audioBitsPerSecond: 64000
+      };
+      mediaRecorder = new MediaRecorder(stream, options);
+    } catch (e) {
+      // Fallback without bitrate options
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType });
+      } catch (e2) {
+        // Last resort: no options at all
+        mediaRecorder = new MediaRecorder(stream);
+      }
+    }
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-      const file = new File([blob], `video_${Date.now()}.webm`, { type: 'video/webm' });
+      const mimeType = selectedMimeType || 'video/webm';
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const file = new File([blob], `video_${Date.now()}.${extension}`, { type: mimeType });
       setSelectedFile(file);
       setPreview(URL.createObjectURL(blob));
       setStep('edit');
@@ -192,7 +226,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
       }
     };
 
-    mediaRecorder.start();
+    mediaRecorder.start(1000); // Request data every second for better reliability
     mediaRecorderRef.current = mediaRecorder;
     setIsRecording(true);
     setRecordingTime(0);
