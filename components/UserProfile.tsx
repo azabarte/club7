@@ -174,7 +174,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
           {isCurrentUser && (
             <button
               onClick={() => setShowAvatarPicker(true)}
-              className="absolute -right-2 -top-2 bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] p-2.5 rounded-full text-white shadow-lg hover:scale-110 transition-transform z-10"
+              className="absolute bottom-0 right-0 bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] p-2 rounded-full text-white shadow-lg hover:scale-110 transition-transform z-10 border-2 border-[#0a1628]"
             >
               <Camera size={20} />
             </button>
@@ -183,7 +183,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
 
         <h1 className="text-2xl font-bold text-white mt-4">{user.name}</h1>
 
-        <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
+        {/* Call to action for avatar if default */}
+        {isCurrentUser && user.avatar_url?.includes('dicebear') && (
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="mt-2 text-[#4ECDC4] text-xs font-bold flex items-center gap-1 hover:underline"
+          >
+            <Sparkles size={12} />
+            ¡Crea tu avatar con IA!
+          </button>
+        )}
+
+        <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
           <div className="bg-white/10 text-white/80 px-4 py-1 rounded-full text-xs font-bold border border-white/20">
             {isCurrentUser ? 'Eres tú 😎' : 'Miembro BestieSocial 🌟'}
           </div>
@@ -294,7 +305,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
       {/* Avatar Picker Modal */}
       {showAvatarPicker && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center">
-          <div className="w-full max-w-lg bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-t-3xl p-6 pb-10 border-t border-white/10">
+          <div className="w-full max-w-lg bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-t-3xl p-6 pb-10 border-t border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">Elige tu avatar</h2>
               <button
@@ -305,6 +316,49 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
               </button>
             </div>
 
+            {/* AI Avatar Generation - Now at Top */}
+            <div className="mb-8 p-4 bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl border border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                  <Sparkles size={20} className="text-white animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">Crear con IA</h3>
+                  <p className="text-xs text-white/50">Tu avatar único desde una selfie</p>
+                </div>
+              </div>
+
+              <input
+                type="file"
+                ref={selfieInputRef}
+                onChange={handleSelfieSelect}
+                accept="image/*"
+                capture="user"
+                className="hidden"
+              />
+              <button
+                onClick={() => selfieInputRef.current?.click()}
+                disabled={isGeneratingAI || isUpdating}
+                className="w-full py-3 rounded-xl bg-white text-purple-900 font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] transition-all shadow-lg"
+              >
+                {isGeneratingAI ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Camera size={18} />
+                    Subir Selfie y Generar
+                  </>
+                )}
+              </button>
+              {aiError && (
+                <p className="text-red-400 text-xs text-center mt-2 bg-red-900/20 py-1 rounded-lg border border-red-500/20">{aiError}</p>
+              )}
+            </div>
+
+            <h3 className="text-sm font-bold text-white/50 mb-3 uppercase tracking-wide">O elige uno prediseñado</h3>
             <div className="grid grid-cols-4 gap-3">
               {avatarOptions.map((opt, i) => (
                 <button
@@ -322,40 +376,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
               ))}
             </div>
 
-            {/* AI Avatar Generation */}
-            <div className="mt-6 pt-4 border-t border-white/10">
-              <input
-                type="file"
-                ref={selfieInputRef}
-                onChange={handleSelfieSelect}
-                accept="image/*"
-                capture="user"
-                className="hidden"
-              />
-              <button
-                onClick={() => selfieInputRef.current?.click()}
-                disabled={isGeneratingAI || isUpdating}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] transition-all"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Generando avatar con IA...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 size={20} />
-                    Crear con IA desde selfie
-                  </>
-                )}
-              </button>
-              {aiError && (
-                <p className="text-red-400 text-sm text-center mt-2">{aiError}</p>
-              )}
-              <p className="text-white/40 text-xs text-center mt-2">
-                Sube una selfie y la IA creará un avatar único para ti
-              </p>
-            </div>
 
             {isUpdating && (
               <div className="text-center mt-4 text-[#4ECDC4]">

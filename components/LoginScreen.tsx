@@ -24,8 +24,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
     const handlePinSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (pin.length !== 4) {
-            setError('El PIN debe tener 4 dígitos');
+        if (pin.length < 4) {
+            setError('El código debe tener al menos 4 dígitos');
             return;
         }
         setStep('member');
@@ -49,7 +49,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     };
 
     const handlePinChange = (value: string) => {
-        if (/^\d{0,4}$/.test(value)) {
+        if (/^\d{0,8}$/.test(value)) {
             setPin(value);
             setError('');
         }
@@ -85,7 +85,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                             </div>
 
                             <h2 className="text-xl font-bold text-white text-center mb-6">
-                                Ingresa tu contraseña
+                                Código de Acceso
                             </h2>
 
                             {/* Password Display */}
