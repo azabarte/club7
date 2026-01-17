@@ -21,6 +21,7 @@ export interface ClubMember {
   xp: number;
   level: number;
   is_admin: boolean;
+  password?: string;
   created_at: string;
 }
 

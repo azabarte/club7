@@ -26,6 +26,7 @@ import {
     deleteMessage as deleteMessageApi,
     deletePost as deletePostApi,
     createMember,
+    updateMemberDetails,
 } from './supabase';
 
 interface StoreState {
@@ -45,7 +46,7 @@ interface StoreState {
     isLoading: boolean;
 
     // Actions
-    login: (pin: string, memberId: string) => Promise<boolean>;
+    login: (password: string, memberId: string) => Promise<boolean>;
     logout: () => void;
     refreshData: () => Promise<void>;
     addNewPost: (type: 'image' | 'video', file: File, caption: string, stickers?: string[]) => Promise<boolean>;
@@ -58,6 +59,7 @@ interface StoreState {
     deleteMessageAction: (messageId: string) => Promise<boolean>;
     deletePostAction: (postId: string) => Promise<boolean>;
     addNewMember: (name: string) => Promise<ClubMember | null>;
+    updateMember: (id: string, updates: Partial<ClubMember>) => Promise<boolean>;
 }
 
 const StoreContext = createContext<StoreState | null>(null);
@@ -182,20 +184,33 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     }, [isAuthenticated, refreshData]);
 
     // Actions
-    const login = async (pin: string, memberId: string): Promise<boolean> => {
-        const isValid = await verifyClubPin(pin);
-        if (!isValid) return false;
+    const login = async (password: string, memberId: string): Promise<boolean> => {
+        // Find member
+        const member = members.find(m => m.id === memberId);
+        if (!member) return false;
 
-        const membersData = await getMembers();
-        const user = membersData.find(m => m.id === memberId);
-        if (!user) return false;
+        // Verify password against database
+        try {
+            const { data, error } = await supabase
+                .from('club_members')
+                .select('password')
+                .eq('id', memberId)
+                .single();
 
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        setMembers(membersData);
-        localStorage.setItem('bestiesocial_user_id', user.id);
+            if (error || !data) return false;
 
-        return true;
+            // Allow login if password matches OR if it's the default '1234'
+            if (data.password === password) {
+                setCurrentUser(member);
+                setIsAuthenticated(true);
+                localStorage.setItem('bestiesocial_user_id', member.id);
+                return true;
+            }
+        } catch (e) {
+            console.error('Login error:', e);
+        }
+
+        return false;
     };
 
     const logout = () => {
@@ -367,6 +382,18 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return member;
     };
 
+    const updateMember = async (id: string, updates: Partial<ClubMember>): Promise<boolean> => {
+        const updated = await updateMemberDetails(id, updates);
+        if (updated) {
+            setMembers(prev => prev.map(m => m.id === id ? updated : m));
+            if (currentUser && currentUser.id === id) {
+                setCurrentUser(updated);
+            }
+            return true;
+        }
+        return false;
+    };
+
     const value: StoreState = {
         isAuthenticated,
         currentUser,
@@ -390,6 +417,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         deleteMessageAction,
         deletePostAction,
         addNewMember,
+        updateMember,
     };
 
     return (

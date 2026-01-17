@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { getMembers } from '../lib/supabase';
 import { ClubMember } from '../lib/supabase';
-import { Lock, ArrowRight, Loader2, Users } from 'lucide-react';
+import { Lock, ArrowRight, Loader2, Users, Shield } from 'lucide-react';
 
 interface LoginScreenProps {
     onSuccess: () => void;
@@ -85,35 +85,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                             </div>
 
                             <h2 className="text-xl font-bold text-white text-center mb-6">
-                                Ingresa el código secreto
+                                Ingresa tu contraseña
                             </h2>
 
-                            <div className="flex justify-center gap-3 mb-6">
-                                {[0, 1, 2, 3].map((i) => (
-                                    <div
-                                        key={i}
-                                        className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl font-bold transition-all ${pin.length > i
-                                            ? 'bg-white/20 border-white text-white'
-                                            : 'bg-white/5 border-white/20 text-white/30'
-                                            }`}
-                                    >
-                                        {pin[i] ? '●' : ''}
-                                    </div>
-                                ))}
+                            {/* Password Display */}
+                            <div className="flex justify-center mb-6 h-14 items-center gap-2">
+                                {pin.length === 0 ? (
+                                    <span className="text-white/30 text-lg">****</span>
+                                ) : (
+                                    Array(pin.length).fill(0).map((_, i) => (
+                                        <div key={i} className="w-4 h-4 rounded-full bg-white animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+                                    ))
+                                )}
                             </div>
 
                             <input
-                                type="tel"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={4}
+                                type="password"
                                 value={pin}
-                                onChange={(e) => handlePinChange(e.target.value)}
-                                className="sr-only"
+                                onChange={(e) => {
+                                    setPin(e.target.value);
+                                    setError('');
+                                }}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-center text-xl tracking-widest focus:outline-none focus:border-indigo-500 transition-colors mb-4"
+                                placeholder="Contraseña"
                                 autoFocus
                             />
 
-                            {/* Number Pad */}
+                            {/* On-screen NumPad (Optional utility) */}
                             <div className="grid grid-cols-3 gap-3">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, 'del'].map((num, i) => {
                                     if (num === null) return <div key={i} />;
@@ -123,7 +121,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                                                 key={i}
                                                 type="button"
                                                 onClick={() => setPin(p => p.slice(0, -1))}
-                                                className="h-14 rounded-xl bg-white/5 text-white/60 font-bold hover:bg-white/10 transition-colors"
+                                                className="h-12 rounded-xl bg-white/5 text-white/60 font-bold hover:bg-white/10 transition-colors flex items-center justify-center"
                                             >
                                                 ←
                                             </button>
@@ -133,8 +131,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                                         <button
                                             key={i}
                                             type="button"
-                                            onClick={() => handlePinChange(pin + num)}
-                                            className="h-14 rounded-xl bg-white/10 text-white text-xl font-bold hover:bg-white/20 transition-colors active:scale-95"
+                                            onClick={() => {
+                                                setPin(prev => prev + num);
+                                                setError('');
+                                            }}
+                                            className="h-12 rounded-xl bg-white/10 text-white text-xl font-bold hover:bg-white/20 transition-colors active:scale-95"
                                         >
                                             {num}
                                         </button>
@@ -151,13 +152,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
                         <button
                             type="submit"
-                            disabled={pin.length !== 4}
-                            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${pin.length === 4
+                            disabled={pin.length === 0}
+                            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${pin.length > 0
                                 ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg shadow-pink-500/30 active:scale-95'
                                 : 'bg-white/10 text-white/40 cursor-not-allowed'
                                 }`}
                         >
-                            Continuar <ArrowRight className="w-5 h-5" />
+                            Entrar <ArrowRight className="w-5 h-5" />
                         </button>
                     </form>
                 ) : (
@@ -222,9 +223,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                     </div>
                 )}
 
-                <p className="text-white/30 text-xs text-center mt-6">
-                    PIN por defecto: 7777
+                <p className="text-white/30 text-xs text-center mt-6 mb-2">
+                    PIN por defecto: 7777 (Solo acceso inicial)
                 </p>
+
+                {/* Admin Access Button */}
+                <div className="flex justify-center">
+                    <button
+                        onClick={() => {
+                            const adminUser = members.find(m => m.name === 'Admin' || m.is_admin);
+                            if (adminUser) {
+                                handleMemberSelect(adminUser.id);
+                            } else {
+                                setError('Usuario Admin no encontrado');
+                            }
+                        }}
+                        className="text-indigo-400 text-xs font-bold hover:text-indigo-300 transition-colors flex items-center gap-1 opacity-50 hover:opacity-100"
+                    >
+                        <Shield size={12} />
+                        Acceso Admin
+                    </button>
+                </div>
             </div>
         </div>
     );
