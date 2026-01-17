@@ -129,6 +129,21 @@ export async function updateMemberAvatar(memberId: string, avatarUrl: string): P
   return data;
 }
 
+export async function updateMemberDetails(memberId: string, updates: Partial<ClubMember>): Promise<ClubMember | null> {
+  const { data, error } = await supabase
+    .from('club_members')
+    .update(updates)
+    .eq('id', memberId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating member details:', error);
+    return null;
+  }
+  return data;
+}
+
 // Posts
 export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabase

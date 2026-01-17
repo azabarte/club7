@@ -91,37 +91,40 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const refreshData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [membersData, postsData, messagesData, missionsData] = await Promise.all([
-                getMembers(),
-                getPosts(),
-                getMessages(),
-                getMissions(),
-            ]);
-
+            const membersData = await getMembers();
             setMembers(membersData);
-            setPosts(postsData);
-            setMessages(messagesData);
-            setMissions(missionsData);
 
-            // Load reactions for all posts
-            const reactionsMap: Record<string, string[]> = {};
-            for (const post of postsData) {
-                const reactions = await getReactionsForPost(post.id);
-                reactionsMap[post.id] = reactions.map(r => r.emoji);
-            }
-            setPostReactions(reactionsMap);
+            if (isAuthenticated) {
+                const [postsData, messagesData, missionsData] = await Promise.all([
+                    getPosts(),
+                    getMessages(),
+                    getMissions(),
+                ]);
 
-            // Load mission progress for current user
-            if (currentUser) {
-                const progress = await getMissionProgress(currentUser.id);
-                setMissionProgress(progress);
+                setPosts(postsData);
+                setMessages(messagesData);
+                setMissions(missionsData);
+
+                // Load reactions for all posts
+                const reactionsMap: Record<string, string[]> = {};
+                for (const post of postsData) {
+                    const reactions = await getReactionsForPost(post.id);
+                    reactionsMap[post.id] = reactions.map(r => r.emoji);
+                }
+                setPostReactions(reactionsMap);
+
+                // Load mission progress for current user
+                if (currentUser) {
+                    const progress = await getMissionProgress(currentUser.id);
+                    setMissionProgress(progress);
+                }
             }
         } catch (error) {
             console.error('Error refreshing data:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [currentUser]);
+    }, [isAuthenticated, currentUser]);
 
     // Check for saved session on mount
     useEffect(() => {
@@ -185,8 +188,14 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
     // Actions
     const login = async (password: string, memberId: string): Promise<boolean> => {
-        // Find member
-        const member = members.find(m => m.id === memberId);
+        // Find member (ensure we have members loaded)
+        let member = members.find(m => m.id === memberId);
+        if (!member) {
+            const allMembers = await getMembers();
+            setMembers(allMembers);
+            member = allMembers.find(m => m.id === memberId);
+        }
+
         if (!member) return false;
 
         // Verify password against database
@@ -199,7 +208,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
             if (error || !data) return false;
 
-            // Allow login if password matches OR if it's the default '1234'
+            // Simple string comparison for the PIN system
             if (data.password === password) {
                 setCurrentUser(member);
                 setIsAuthenticated(true);

@@ -9,19 +9,13 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
-    const { login } = useStore();
+    const { login, members } = useStore();
     const [pin, setPin] = useState('');
-    const [members, setMembers] = useState<ClubMember[]>([]);
     const [selectedMember, setSelectedMember] = useState<string | null>(null);
     const [step, setStep] = useState<'access' | 'member' | 'password'>('access');
     const [isAdminMode, setIsAdminMode] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        // Preload members
-        getMembers().then(setMembers);
-    }, []);
 
     const handleAccessPinSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,7 +70,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     // Filter members based on access mode
     const visibleMembers = isAdminMode
         ? members
-        : members.filter(m => !m.is_admin && m.name !== 'Admin');
+        : members.filter(m => !m.is_admin && m.name.toLowerCase() !== 'admin');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628] flex items-center justify-center p-6">
@@ -174,8 +168,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
                             type="submit"
                             disabled={pin.length < 4}
                             className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${pin.length >= 4
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg active:scale-95'
-                                    : 'bg-white/10 text-white/40 cursor-not-allowed'
+                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg active:scale-95'
+                                : 'bg-white/10 text-white/40 cursor-not-allowed'
                                 }`}
                         >
                             Verificar <ArrowRight className="w-5 h-5" />
