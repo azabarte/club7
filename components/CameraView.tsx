@@ -5,6 +5,8 @@ import { FaceFilters, FilterSelector } from './FaceFilters';
 
 interface CameraViewProps {
   onClose: () => void;
+  onCapture?: (file: File, action: 'use' | 'ai') => void;
+  mode?: 'post' | 'avatar';
 }
 
 type FilterType = 'none' | 'warm' | 'cool' | 'vintage' | 'bw' | 'vibrant';
@@ -18,7 +20,7 @@ const filters: { id: FilterType; name: string; css: string }[] = [
   { id: 'vibrant', name: '🌈', css: 'saturate(180%) contrast(110%) brightness(105%)' },
 ];
 
-const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
+const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'post' }) => {
   const { addNewPost, addNewPostFromUrl } = useStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -51,6 +53,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
 
   // Initialize camera
   useEffect(() => {
+    // For avatar mode, default to front facing camera and simpler setup
+    if (mode === 'avatar') {
+      setFacingMode('user');
+    }
     startCamera();
     return () => {
       stopCamera();
@@ -454,8 +460,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
               className={`flex flex-col items-center gap-1 ${showARFilters ? 'text-purple-400' : 'text-white'}`}
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${showARFilters
-                  ? 'bg-purple-600/30 border-purple-500'
-                  : 'bg-gray-800 border-gray-700'
+                ? 'bg-purple-600/30 border-purple-500'
+                : 'bg-gray-800 border-gray-700'
                 }`}>
                 <span className="text-2xl">🎭</span>
               </div>
@@ -504,46 +510,91 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
 
           {/* Edit controls */}
           <div className="bg-black p-6 space-y-4">
-            <input
-              type="text"
-              placeholder="Añade un pie de foto..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-2xl px-4 py-3 placeholder-gray-500 border border-gray-700 focus:border-[#4ECDC4] outline-none"
-            />
+            {mode === 'post' ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Añade un pie de foto..."
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="w-full bg-gray-800 text-white rounded-2xl px-4 py-3 placeholder-gray-500 border border-gray-700 focus:border-[#4ECDC4] outline-none"
+                />
 
-            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-              {stickers.map(sticker => (
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                  {stickers.map(sticker => (
+                    <button
+                      key={sticker}
+                      onClick={() => toggleSticker(sticker)}
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${selectedStickers.includes(sticker)
+                        ? 'bg-gradient-to-br from-[#4ECDC4] to-[#FF6B9D] scale-110'
+                        : 'bg-gray-800 hover:bg-gray-700'
+                        }`}
+                    >
+                      {sticker}
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  key={sticker}
-                  onClick={() => toggleSticker(sticker)}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${selectedStickers.includes(sticker)
-                    ? 'bg-gradient-to-br from-[#4ECDC4] to-[#FF6B9D] scale-110'
-                    : 'bg-gray-800 hover:bg-gray-700'
-                    }`}
+                  onClick={handlePublish}
+                  disabled={isUploading}
+                  className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#FF6B9D] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform disabled:opacity-70"
                 >
-                  {sticker}
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Publicando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={20} />
+                      Publicar
+                    </>
+                  )}
                 </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handlePublish}
-              disabled={isUploading}
-              className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#FF6B9D] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform disabled:opacity-70"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Publicando...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  Publicar
-                </>
-              )}
-            </button>
+              </>
+            ) : (
+              /* Avatar Mode Controls */
+              <div className="space-y-4">
+                <p className="text-white text-center font-medium">¿Te gusta esta foto?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      if (selectedFile && onCapture) {
+                        onCapture(selectedFile);
+                        onClose();
+                      }
+                    }}
+                    className="bg-white/10 text-white py-3 rounded-xl font-bold border border-white/20 hover:bg-white/20"
+                  >
+                    Usar Foto
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedFile && onCapture) {
+                        // We'll handle the "AI Generation" logic in the parent component
+                        // by modifying the file or passing a flag, but simpler to just 
+                        // return the file triggers the same flow, 
+                        // or we can repurpose onCapture to just return file
+                        // and let parent decide.
+                        // But wait, parent needs to know intent. 
+                        // For now, let's just assume the parent offers the generic choice AFTER capture
+                        // OR we add specific intent buttons here. 
+                        // Let's just return the file.
+                        onCapture(selectedFile);
+                        onClose();
+                      }
+                    }}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold"
+                  >
+                    Usar para AI ✨
+                  </button>
+                </div>
+                <p className="text-white/40 text-xs text-center">
+                  Al confirmar, podrás elegir si usar la foto directa o crear un avatar con IA.
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { ClubMember, Post, uploadMedia } from '../lib/supabase';
-import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Wand2 } from 'lucide-react';
+import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Wand2, RefreshCcw } from 'lucide-react';
 import { generateAvatarFromSelfie, isGeminiConfigured } from '../lib/gemini';
+import CameraView from './CameraView';
 
 interface UserProfileProps {
   user: ClubMember;
@@ -30,6 +31,7 @@ const avatarOptions = [
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
   const { currentUser, updateAvatar, addNewMember, members } = useStore();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newUserName, setNewUserName] = useState('');
@@ -75,10 +77,33 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     }
   };
 
-  const handleSelfieSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleCameraCapture = async (file: File, action: 'use' | 'ai') => {
+    if (action === 'ai') {
+      // AI Generation Flow
+      handleSelfieFile(file);
+    } else {
+      // Direct Upload Flow
+      setIsUpdating(true);
+      try {
+        const uploadedUrl = await uploadMedia(file, 'avatars');
+        if (uploadedUrl) {
+          const success = await updateAvatar(uploadedUrl);
+          if (success) {
+            setShowAvatarPicker(false);
+          }
+        } else {
+          setAiError('Error al subir la foto');
+        }
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        setAiError('Error al subir la foto');
+      } finally {
+        setIsUpdating(false);
+      }
+    }
+  };
 
+  const handleSelfieFile = async (file: File) => {
     setIsGeneratingAI(true);
     setAiError(null);
 
@@ -107,10 +132,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
       setAiError('Error al generar el avatar');
     } finally {
       setIsGeneratingAI(false);
-      if (selfieInputRef.current) {
-        selfieInputRef.current.value = '';
-      }
     }
+  };
+
+  const handleSelfieSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    handleSelfieFile(file);
   };
 
   const isAdmin = currentUser?.is_admin;
@@ -317,278 +345,298 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
             </div>
 
             {/* AI Avatar Generation - Now at Top */}
-            <div className="mb-8 p-4 bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl border border-white/10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                  <Sparkles size={20} className="text-white animate-pulse" />
+            <div className="mb-4">
+              <button
+                onClick={() => setShowCamera(true)}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition-transform mb-3"
+              >
+                <Camera size={22} />
+                Tomar Selfie
+              </button>
+
+              <p className="text-center text-xs text-white/40 mb-3">O sube una foto de tu galería</p>
+
+              <div className="p-4 bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl border border-white/10">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                    <Sparkles size={20} className="text-white animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">Crear con IA</h3>
+                    <p className="text-xs text-white/50">Tu avatar único desde una selfie</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-white">Crear con IA</h3>
-                  <p className="text-xs text-white/50">Tu avatar único desde una selfie</p>
-                </div>
+
+                <input
+                  type="file"
+                  ref={selfieInputRef}
+                  onChange={handleSelfieSelect}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                />
+                <button
+                  onClick={() => selfieInputRef.current?.click()}
+                  disabled={isGeneratingAI || isUpdating}
+                  className="w-full py-3 rounded-xl bg-white text-purple-900 font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] transition-all shadow-lg"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={18} />
+                      Subir Selfie y Generar
+                    </>
+                  )}
+                </button>
+                {aiError && (
+                  <p className="text-red-400 text-xs text-center mt-2 bg-red-900/20 py-1 rounded-lg border border-red-500/20">{aiError}</p>
+                )}
               </div>
 
-              <input
-                type="file"
-                ref={selfieInputRef}
-                onChange={handleSelfieSelect}
-                accept="image/*"
-                capture="user"
-                className="hidden"
-              />
-              <button
-                onClick={() => selfieInputRef.current?.click()}
-                disabled={isGeneratingAI || isUpdating}
-                className="w-full py-3 rounded-xl bg-white text-purple-900 font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] transition-all shadow-lg"
-              >
-                {isGeneratingAI ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Generando...
-                  </>
-                ) : (
-                  <>
-                    <Camera size={18} />
-                    Subir Selfie y Generar
-                  </>
-                )}
-              </button>
-              {aiError && (
-                <p className="text-red-400 text-xs text-center mt-2 bg-red-900/20 py-1 rounded-lg border border-red-500/20">{aiError}</p>
+              <h3 className="text-sm font-bold text-white/50 mb-3 uppercase tracking-wide">O elige uno prediseñado</h3>
+              <div className="grid grid-cols-4 gap-3">
+                {avatarOptions.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAvatarSelect(opt.seed, opt.bg)}
+                    disabled={isUpdating}
+                    className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-[#4ECDC4] transition-all hover:scale-105 disabled:opacity-50"
+                  >
+                    <img
+                      src={getAvatarUrl(opt.seed, opt.bg)}
+                      alt={`Avatar ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+
+
+              {isUpdating && (
+                <div className="text-center mt-4 text-[#4ECDC4]">
+                  Actualizando avatar...
+                </div>
               )}
             </div>
-
-            <h3 className="text-sm font-bold text-white/50 mb-3 uppercase tracking-wide">O elige uno prediseñado</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {avatarOptions.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleAvatarSelect(opt.seed, opt.bg)}
-                  disabled={isUpdating}
-                  className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-[#4ECDC4] transition-all hover:scale-105 disabled:opacity-50"
-                >
-                  <img
-                    src={getAvatarUrl(opt.seed, opt.bg)}
-                    alt={`Avatar ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-
-
-            {isUpdating && (
-              <div className="text-center mt-4 text-[#4ECDC4]">
-                Actualizando avatar...
-              </div>
-            )}
           </div>
-        </div>
       )}
 
-      {/* Selected Post Modal */}
-      {selectedPost && (
-        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
-          <button
-            onClick={() => setSelectedPost(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white z-10 bg-black/50 p-2 rounded-full"
-          >
-            <X size={24} />
-          </button>
-
-          <div className="relative w-full h-full max-w-lg flex items-center justify-center">
-            {selectedPost.type === 'video' ? (
-              <video
-                src={selectedPost.url}
-                className="max-w-full max-h-full rounded-2xl"
-                controls
-                autoPlay
-              />
-            ) : (
-              <img
-                src={selectedPost.url}
-                alt="Post"
-                className="max-w-full max-h-full object-contain rounded-2xl"
-              />
-            )}
-
-            {selectedPost.caption && (
-              <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-4 rounded-xl text-white">
-                <p>{selectedPost.caption}</p>
-                {selectedPost.stickers && selectedPost.stickers.length > 0 && (
-                  <div className="flex gap-2 mt-2">
-                    {selectedPost.stickers.map((s, i) => (
-                      <span key={i} className="text-xl">{s}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Admin Panel Modal */}
-      {showAdminPanel && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-3xl p-6 border border-white/10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Shield size={20} className="text-purple-400" />
-                Panel de Admin
-              </h2>
+          {/* Selected Post Modal */}
+          {selectedPost && (
+            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4">
               <button
-                onClick={() => setShowAdminPanel(false)}
-                className="text-white/60 hover:text-white"
+                onClick={() => setSelectedPost(null)}
+                className="absolute top-4 right-4 text-white/80 hover:text-white z-10 bg-black/50 p-2 rounded-full"
               >
                 <X size={24} />
               </button>
-            </div>
 
-            {/* Create New User Section */}
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">Añadir Usuario</h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nombre del usuario..."
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#4ECDC4]"
-                />
-                <button
-                  onClick={handleCreateUser}
-                  disabled={!newUserName.trim() || isCreatingUser}
-                  className="bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white px-4 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center min-w-[50px]"
-                >
-                  {isCreatingUser ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : (
-                    <UserPlus size={20} />
-                  )}
-                </button>
-              </div>
-              {createSuccess && (
-                <div className="mt-2 text-green-400 text-sm flex items-center gap-1">
-                  <Check size={16} />
-                  ¡Usuario creado correctamente!
-                </div>
-              )}
-            </div>
+              <div className="relative w-full h-full max-w-lg flex items-center justify-center">
+                {selectedPost.type === 'video' ? (
+                  <video
+                    src={selectedPost.url}
+                    className="max-w-full max-h-full rounded-2xl"
+                    controls
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={selectedPost.url}
+                    alt="Post"
+                    className="max-w-full max-h-full object-contain rounded-2xl"
+                  />
+                )}
 
-            {/* Current Members List */}
-            <div>
-              <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">
-                Miembros ({members.length})
-              </h3>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10">
-                    <img
-                      src={member.avatar_url || `https://api.dicebear.com/9.x/lorelei/svg?seed=${member.name}`}
-                      alt={member.name}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div className="flex-1">
-                      <span className="text-white font-medium">{member.name}</span>
-                      <div className="flex items-center gap-2 text-xs text-white/50">
-                        <span>Lvl {member.level || 1}</span>
-                        <span>•</span>
-                        <span>{member.xp || 0} XP</span>
-                      </div>
-                    </div>
-                    {member.is_admin && (
-                      <div className="bg-purple-500/30 text-purple-300 text-xs px-2 py-1 rounded-full">
-                        Admin
+                {selectedPost.caption && (
+                  <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-4 rounded-xl text-white">
+                    <p>{selectedPost.caption}</p>
+                    {selectedPost.stickers && selectedPost.stickers.length > 0 && (
+                      <div className="flex gap-2 mt-2">
+                        {selectedPost.stickers.map((s, i) => (
+                          <span key={i} className="text-xl">{s}</span>
+                        ))}
                       </div>
                     )}
-                    <button
-                      onClick={() => handleEditClick(member)}
-                      className="text-white/40 hover:text-[#4ECDC4] transition-colors p-2"
-                    >
-                      <Sparkles size={16} />
-                    </button>
                   </div>
-                ))}
+                )}
               </div>
             </div>
+          )}
 
-            {/* Edit User Modal Overlay */}
-            {editingUser && (
-              <div className="absolute inset-0 z-50 bg-[#0a1628] rounded-3xl p-6 flex flex-col">
+          {/* Admin Panel Modal */}
+          {showAdminPanel && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+              <div className="w-full max-w-md bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-3xl p-6 border border-white/10">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-white">Editar Usuario</h3>
-                  <button onClick={() => setEditingUser(null)} className="text-white/60 hover:text-white">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Shield size={20} className="text-purple-400" />
+                    Panel de Admin
+                  </h2>
+                  <button
+                    onClick={() => setShowAdminPanel(false)}
+                    className="text-white/60 hover:text-white"
+                  >
                     <X size={24} />
                   </button>
                 </div>
 
-                <div className="space-y-4 flex-1 overflow-y-auto">
-                  <div>
-                    <label className="text-xs text-white/40 font-bold uppercase block mb-1">Nombre</label>
+                {/* Create New User Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">Añadir Usuario</h3>
+                  <div className="flex gap-2">
                     <input
                       type="text"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
+                      placeholder="Nombre del usuario..."
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#4ECDC4]"
                     />
+                    <button
+                      onClick={handleCreateUser}
+                      disabled={!newUserName.trim() || isCreatingUser}
+                      className="bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white px-4 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center min-w-[50px]"
+                    >
+                      {isCreatingUser ? (
+                        <Loader2 size={20} className="animate-spin" />
+                      ) : (
+                        <UserPlus size={20} />
+                      )}
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="text-xs text-white/40 font-bold uppercase block mb-1">Contraseña</label>
-                    <input
-                      type="text"
-                      value={editForm.password}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-white/40 font-bold uppercase block mb-1">Nivel</label>
-                      <input
-                        type="number"
-                        value={editForm.level}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
-                        className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
-                      />
+                  {createSuccess && (
+                    <div className="mt-2 text-green-400 text-sm flex items-center gap-1">
+                      <Check size={16} />
+                      ¡Usuario creado correctamente!
                     </div>
-                    <div>
-                      <label className="text-xs text-white/40 font-bold uppercase block mb-1">XP</label>
-                      <input
-                        type="number"
-                        value={editForm.xp}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, xp: parseInt(e.target.value) || 0 }))}
-                        className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
-                    <input
-                      type="checkbox"
-                      checked={editForm.is_admin}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, is_admin: e.target.checked }))}
-                      className="w-5 h-5 rounded border-white/20 bg-white/10 text-[#4ECDC4] focus:ring-[#4ECDC4]"
-                    />
-                    <label className="text-white font-medium">Es Administrador</label>
-                  </div>
-
-                  <button
-                    onClick={handleUpdateUser}
-                    className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white py-3 rounded-xl font-bold mt-4 shadow-lg active:scale-95 transition-transform"
-                  >
-                    Guardar Cambios
-                  </button>
+                  )}
                 </div>
+
+                {/* Current Members List */}
+                <div>
+                  <h3 className="text-sm font-bold text-white/60 mb-3 uppercase tracking-wide">
+                    Miembros ({members.length})
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {members.map((member) => (
+                      <div key={member.id} className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10">
+                        <img
+                          src={member.avatar_url || `https://api.dicebear.com/9.x/lorelei/svg?seed=${member.name}`}
+                          alt={member.name}
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div className="flex-1">
+                          <span className="text-white font-medium">{member.name}</span>
+                          <div className="flex items-center gap-2 text-xs text-white/50">
+                            <span>Lvl {member.level || 1}</span>
+                            <span>•</span>
+                            <span>{member.xp || 0} XP</span>
+                          </div>
+                        </div>
+                        {member.is_admin && (
+                          <div className="bg-purple-500/30 text-purple-300 text-xs px-2 py-1 rounded-full">
+                            Admin
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleEditClick(member)}
+                          className="text-white/40 hover:text-[#4ECDC4] transition-colors p-2"
+                        >
+                          <Sparkles size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Edit User Modal Overlay */}
+                {editingUser && (
+                  <div className="absolute inset-0 z-50 bg-[#0a1628] rounded-3xl p-6 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-white">Editar Usuario</h3>
+                      <button onClick={() => setEditingUser(null)} className="text-white/60 hover:text-white">
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4 flex-1 overflow-y-auto">
+                      <div>
+                        <label className="text-xs text-white/40 font-bold uppercase block mb-1">Nombre</label>
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-white/40 font-bold uppercase block mb-1">Contraseña</label>
+                        <input
+                          type="text"
+                          value={editForm.password}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                          className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-white/40 font-bold uppercase block mb-1">Nivel</label>
+                          <input
+                            type="number"
+                            value={editForm.level}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
+                            className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-white/40 font-bold uppercase block mb-1">XP</label>
+                          <input
+                            type="number"
+                            value={editForm.xp}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, xp: parseInt(e.target.value) || 0 }))}
+                            className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10">
+                        <input
+                          type="checkbox"
+                          checked={editForm.is_admin}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, is_admin: e.target.checked }))}
+                          className="w-5 h-5 rounded border-white/20 bg-white/10 text-[#4ECDC4] focus:ring-[#4ECDC4]"
+                        />
+                        <label className="text-white font-medium">Es Administrador</label>
+                      </div>
+
+                      <button
+                        onClick={handleUpdateUser}
+                        className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white py-3 rounded-xl font-bold mt-4 shadow-lg active:scale-95 transition-transform"
+                      >
+                        Guardar Cambios
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Camera Modal */}
+          {showCamera && (
+            <CameraView
+              onClose={() => setShowCamera(false)}
+              onCapture={handleCameraCapture}
+              mode="avatar"
+            />
+          )}
         </div>
-      )}
-    </div>
-  );
+      );
 };
 
-export default UserProfile;
+      export default UserProfile;
