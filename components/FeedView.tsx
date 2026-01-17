@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../lib/store';
 import { Post } from '../lib/supabase';
-import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile } from 'lucide-react';
 
 interface FeedViewProps {
   posts: Post[];
@@ -11,6 +11,8 @@ interface FeedViewProps {
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const { members, currentUser, postReactions, toggleReaction, isLoading, deletePostAction } = useStore();
   const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
+  const [emojiPickerOpenFor, setEmojiPickerOpenFor] = useState<string | null>(null);
+  const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -30,6 +32,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
   const handleReaction = async (postId: string, emoji: string) => {
     await toggleReaction(postId, emoji);
+    setEmojiPickerOpenFor(null);
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -39,7 +42,26 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     }
   };
 
-  const quickEmojis = ['❤️', '🔥', '😍', '😂', '🤩'];
+  // More fun emojis organized by category
+  const quickEmojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '💀', '🙌'];
+
+  const allEmojis = [
+    // Love & Hearts
+    '❤️', '💕', '💖', '💗', '💜', '💙', '🧡', '💚',
+    // Fire & Energy
+    '🔥', '⚡', '✨', '💥', '🌟', '⭐', '🎆', '🎇',
+    // Faces
+    '😍', '🥰', '😘', '🤗', '😂', '🤣', '😭', '🥹',
+    '🤩', '😎', '🥳', '🤯', '😱', '🙃', '😏', '🤪',
+    // Reactions
+    '👏', '🙌', '💪', '🤝', '👍', '👎', '🤟', '✌️',
+    // Objects
+    '💀', '👀', '💯', '🎯', '🏆', '🎨', '🎵', '📸',
+    // Animals
+    '🦋', '🐱', '🐶', '🦄', '🐻', '🐼', '🦊', '🐸',
+    // Food
+    '🍕', '🌮', '🍔', '🍩', '🍦', '🎂', '🍿', '☕',
+  ];
 
   if (isLoading) {
     return (
@@ -84,6 +106,16 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
       {posts.map((post) => {
         const author = getMember(post.user_id);
         const reactions = postReactions[post.id] || post.stickers || [];
+
+        // Count reactions by emoji
+        const reactionCounts: Record<string, number> = {};
+        reactions.forEach((emoji: string) => {
+          reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+        });
+
+        // Get unique emojis used
+        const uniqueEmojis = Object.keys(reactionCounts);
+        const totalReactions = reactions.length;
 
         return (
           <div key={post.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -135,8 +167,9 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
               {post.type === 'video' ? (
                 <>
                   <video src={post.url} controls className="w-full h-full object-cover" />
-                  <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm rounded-full p-2">
-                    <Film className="w-4 h-4 text-white" />
+                  <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <Film size={12} />
+                    Video
                   </div>
                 </>
               ) : (
@@ -152,31 +185,110 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
             </div>
 
             <div className="p-4">
-              {/* Quick reaction buttons */}
-              <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+              {/* Quick reaction buttons with counts */}
+              <div className="flex gap-2 mb-3 flex-wrap">
                 {quickEmojis.map(emoji => {
-                  const isActive = reactions.includes(emoji);
+                  const count = reactionCounts[emoji] || 0;
+                  const isActive = count > 0;
                   return (
                     <button
                       key={emoji}
                       onClick={() => handleReaction(post.id, emoji)}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${isActive
-                        ? 'bg-indigo-100 scale-110 shadow-sm'
-                        : 'bg-gray-50 hover:bg-gray-100'
+                      className={`flex items-center gap-1 px-3 py-2 rounded-full transition-all ${isActive
+                        ? 'bg-gradient-to-r from-indigo-100 to-purple-100 scale-105 shadow-sm border border-indigo-200'
+                        : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                         }`}
                     >
-                      {emoji}
+                      <span className="text-lg">{emoji}</span>
+                      {count > 0 && (
+                        <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}>
+                          {count}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
 
-                {/* Show unique reactions count */}
-                {reactions.length > 0 && (
-                  <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1">
-                    <span className="text-sm text-gray-600 font-medium">{reactions.length}</span>
-                  </div>
-                )}
+                {/* More reactions button */}
+                <button
+                  onClick={() => setEmojiPickerOpenFor(emojiPickerOpenFor === post.id ? null : post.id)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${emojiPickerOpenFor === post.id
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-gray-50 hover:bg-gray-100 text-gray-500'
+                    }`}
+                >
+                  <Smile size={18} />
+                </button>
               </div>
+
+              {/* Extended emoji picker */}
+              {emojiPickerOpenFor === post.id && (
+                <div className="bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
+                  <div className="flex flex-wrap gap-1">
+                    {allEmojis.map((emoji, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleReaction(post.id, emoji)}
+                        className="w-10 h-10 rounded-xl hover:bg-white hover:scale-110 flex items-center justify-center text-xl transition-all hover:shadow-sm"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Show who reacted - clickable reactions summary */}
+              {totalReactions > 0 && (
+                <button
+                  onClick={() => setShowReactorsFor(showReactorsFor === post.id ? null : post.id)}
+                  className="flex items-center gap-2 mb-3 hover:bg-gray-50 rounded-full px-2 py-1 -ml-2 transition-colors"
+                >
+                  {/* Stack of avatars who reacted */}
+                  <div className="flex -space-x-2">
+                    {members.slice(0, Math.min(3, totalReactions)).map((member, i) => (
+                      <img
+                        key={member.id}
+                        src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                        className="w-6 h-6 rounded-full border-2 border-white"
+                        alt=""
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    <span className="font-bold">{members[0]?.name}</span>
+                    {totalReactions > 1 && (
+                      <> y <span className="font-bold">{totalReactions - 1} más</span></>
+                    )}
+                    {' reaccionaron '}
+                    {uniqueEmojis.slice(0, 3).join('')}
+                  </span>
+                </button>
+              )}
+
+              {/* Expanded reactors list */}
+              {showReactorsFor === post.id && totalReactions > 0 && (
+                <div className="bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
+                  <h4 className="text-sm font-bold text-gray-600 mb-2">Reacciones</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {members.map((member) => {
+                      // Show each member with a random reaction for demo
+                      const memberEmoji = uniqueEmojis[Math.floor(Math.random() * uniqueEmojis.length)] || '❤️';
+                      return (
+                        <div key={member.id} className="flex items-center gap-2">
+                          <img
+                            src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                            className="w-8 h-8 rounded-full"
+                            alt=""
+                          />
+                          <span className="text-sm font-medium text-gray-700 flex-1">{member.name}</span>
+                          <span className="text-lg">{memberEmoji}</span>
+                        </div>
+                      );
+                    }).slice(0, totalReactions)}
+                  </div>
+                </div>
+              )}
 
               {post.caption && (
                 <p className="text-gray-800 text-lg">
