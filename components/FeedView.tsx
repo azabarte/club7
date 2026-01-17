@@ -109,7 +109,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 {/* Dropdown menu */}
                 {menuOpenForPost === post.id && (
                   <div className="absolute right-0 top-8 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-10 min-w-[140px]">
-                    {currentUser?.is_admin && (
+                    {/* Delete button - visible for admins or post owner */}
+                    {(currentUser?.is_admin || post.user_id === currentUser?.id) && (
                       <button
                         onClick={() => handleDeletePost(post.id)}
                         className="w-full px-4 py-2 text-left text-red-500 hover:bg-red-50 flex items-center gap-2 text-sm"

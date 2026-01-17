@@ -159,8 +159,8 @@ const ChatView: React.FC = () => {
                             <img src={msg.media_url} className="rounded-xl max-w-full" alt="Imagen" />
                           )}
                         </div>
-                        {/* Admin delete button */}
-                        {currentUser?.is_admin && (
+                        {/* Delete button - visible for admins or message owner */}
+                        {(currentUser?.is_admin || isMe) && (
                           <button
                             onClick={() => handleDeleteMessage(msg.id)}
                             className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
