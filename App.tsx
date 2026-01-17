@@ -133,7 +133,7 @@ const AppContent: React.FC = () => {
       )}
 
       {/* Main Content Area */}
-      <main className="h-full w-full overflow-hidden">
+      <main className="h-full w-full overflow-auto">
         {renderContent()}
       </main>
 
