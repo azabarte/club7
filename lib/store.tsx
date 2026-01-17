@@ -136,11 +136,18 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
                     setCurrentUser(user);
                     setIsAuthenticated(true);
                     setMembers(membersData);
+                } else {
+                    // Start fresh if user not found, but keep members loaded
+                    setMembers(membersData);
                 }
                 setIsLoading(false);
             });
         } else {
-            setIsLoading(false);
+            // No session, but we still need members for the login screen
+            getMembers().then((membersData) => {
+                setMembers(membersData);
+                setIsLoading(false);
+            });
         }
     }, []);
 
