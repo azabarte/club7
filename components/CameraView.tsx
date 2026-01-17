@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../lib/store';
 import { RefreshCcw, Zap, X, Image as ImageIcon, Loader2, Check, Video, Camera, Sparkles } from 'lucide-react';
+import { FaceFilters, FilterSelector } from './FaceFilters';
 
 interface CameraViewProps {
   onClose: () => void;
@@ -40,6 +41,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const maxRecordingTimeRef = useRef<NodeJS.Timeout | null>(null);
+  const faceFilterCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [activeARFilter, setActiveARFilter] = useState<string | null>(null);
+  const [showARFilters, setShowARFilters] = useState(false);
 
   const stickers = ['🔥', '❤️', '😍', '🤩', '🎉', '✨', '🌈', '🦄', '⭐', '🎭'];
   const MAX_RECORDING_SECONDS = 30; // Max video duration
@@ -330,17 +335,29 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
                 </div>
               </div>
             ) : (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                  filter: currentFilter?.css || 'none'
-                }}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                    filter: currentFilter?.css || 'none'
+                  }}
+                />
+                {/* AR Face Filters Overlay */}
+                <div
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                >
+                  <FaceFilters
+                    videoRef={videoRef}
+                    activeFilter={activeARFilter}
+                  />
+                </div>
+              </>
             )}
 
             {/* Recording indicator */}
@@ -369,7 +386,17 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
               </div>
             </div>
 
-            {/* Filter selector */}
+            {/* AR Filter selector */}
+            {showARFilters && (
+              <div className="absolute bottom-40 left-0 right-0 px-2">
+                <FilterSelector
+                  activeFilter={activeARFilter}
+                  onSelectFilter={setActiveARFilter}
+                />
+              </div>
+            )}
+
+            {/* Color filter selector */}
             <div className="absolute bottom-24 left-0 right-0 px-4">
               <div className="flex justify-center gap-3">
                 {filters.map(filter => (
@@ -421,7 +448,19 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose }) => {
               </span>
             </div>
 
-            <div className="w-12 h-12" />
+            {/* AR Filters toggle */}
+            <button
+              onClick={() => setShowARFilters(!showARFilters)}
+              className={`flex flex-col items-center gap-1 ${showARFilters ? 'text-purple-400' : 'text-white'}`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${showARFilters
+                  ? 'bg-purple-600/30 border-purple-500'
+                  : 'bg-gray-800 border-gray-700'
+                }`}>
+                <span className="text-2xl">🎭</span>
+              </div>
+              <span className="text-[10px] uppercase font-bold text-gray-400">Máscaras</span>
+            </button>
           </div>
         </>
       ) : (
