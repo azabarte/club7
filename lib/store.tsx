@@ -66,7 +66,7 @@ interface StoreState {
     // Actions
     login: (password: string, memberId: string) => Promise<boolean>;
     logout: () => void;
-    refreshData: () => Promise<void>;
+    refreshData: (silent?: boolean) => Promise<void>;
     addNewPost: (type: 'image' | 'video', file: File, caption: string, stickers?: string[]) => Promise<boolean>;
     addNewPostFromUrl: (type: 'image' | 'video', url: string, caption: string, stickers?: string[]) => Promise<boolean>;
     sendNewMessage: (type: 'text' | 'image' | 'audio' | 'sticker', content?: string, file?: File) => Promise<boolean>;
@@ -113,8 +113,8 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     // Load all data
-    const refreshData = useCallback(async () => {
-        setIsLoading(true);
+    const refreshData = useCallback(async (silent = false) => {
+        if (!silent) setIsLoading(true);
         try {
             const membersData = await getMembers();
             setMembers(membersData);
@@ -153,7 +153,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         } catch (error) {
             console.error('Error refreshing data:', error);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     }, [isAuthenticated, currentUser]);
 

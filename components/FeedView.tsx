@@ -121,16 +121,6 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
   return (
     <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full relative">
-      {/* Refresh Button */}
-      <div className="flex justify-end -mt-2 mb-2">
-        <button
-          onClick={() => refreshData()}
-          className="flex items-center gap-1 text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors shadow-sm active:scale-95"
-        >
-          <Zap size={14} className="fill-indigo-500" />
-          Actualizar
-        </button>
-      </div>
 
       {/* Stories / Active Members - Instagram Style (larger) */}
       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
@@ -179,7 +169,16 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
         })}
       </div>
 
-      <h2 className="text-2xl font-bold text-gray-800 px-2">Lo último ⚡</h2>
+      <div className="flex items-center gap-3 px-2 mb-2">
+        <h2 className="text-2xl font-bold text-gray-800">Lo último</h2>
+        <button
+          onClick={() => refreshData(true)}
+          className="flex items-center gap-1.5 bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-200 transition-all shadow-[0_0_10px_rgba(99,102,241,0.4)] hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] group active:scale-95"
+        >
+          <Zap size={16} className="fill-indigo-600 animate-[pulse_2s_ease-in-out_infinite]" />
+          Actualizar
+        </button>
+      </div>
 
       {posts.length === 0 && (
         <div className="text-center py-10">
