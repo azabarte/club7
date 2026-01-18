@@ -40,5 +40,6 @@ export enum AppTab {
   CHAT = 'chat',
   CAMERA = 'camera',
   MISSIONS = 'missions',
+  AGENDA = 'agenda',
   PROFILE = 'profile',
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { Post, Reaction, Comment } from '../lib/supabase';
-import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send, Zap } from 'lucide-react';
 
 interface FeedViewProps {
   posts: Post[];
@@ -9,7 +9,7 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
-  const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, deleteCommentAction, isLoading, deletePostAction } = useStore();
+  const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, deleteCommentAction, isLoading, deletePostAction, refreshData } = useStore();
   const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
   const [emojiPickerOpenFor, setEmojiPickerOpenFor] = useState<string | null>(null);
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
@@ -120,7 +120,18 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   }
 
   return (
-    <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
+    <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full relative">
+      {/* Refresh Button */}
+      <div className="flex justify-end -mt-2 mb-2">
+        <button
+          onClick={() => refreshData()}
+          className="flex items-center gap-1 text-xs font-bold text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors shadow-sm active:scale-95"
+        >
+          <Zap size={14} className="fill-indigo-500" />
+          Actualizar
+        </button>
+      </div>
+
       {/* Stories / Active Members - Instagram Style (larger) */}
       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
         {/* Sort: current user first, then others. Only hide user named 'Admin' */}

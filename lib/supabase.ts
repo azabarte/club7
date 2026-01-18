@@ -79,6 +79,17 @@ export interface Comment {
   created_at: string;
 }
 
+export interface Event {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_type: 'birthday' | 'exam' | 'party' | 'special' | 'general';
+  emoji: string;
+  created_at: string;
+}
+
 // ============================================
 // API Functions
 // ============================================
@@ -578,6 +589,76 @@ export function subscribeToReactions(
       'postgres_changes',
       { event: 'DELETE', schema: 'public', table: 'reactions' },
       (payload) => callback(payload.old as Reaction, 'DELETE')
+    )
+    .subscribe();
+}
+
+// ============================================
+// Events (Agenda)
+// ============================================
+
+export async function getEvents(): Promise<Event[]> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('event_date', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching events:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createEvent(event: Omit<Event, 'id' | 'created_at'>): Promise<Event | null> {
+  const { data, error } = await supabase
+    .from('events')
+    .insert([event])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating event:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function deleteEvent(eventId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId);
+
+  if (error) {
+    console.error('Error deleting event:', error);
+    return false;
+  }
+  return true;
+}
+
+export function subscribeToEvents(
+  callback: (event: Event) => void
+) {
+  return supabase
+    .channel('events-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'events' },
+      (payload) => callback(payload.new as Event)
+    )
+    .subscribe();
+}
+
+export function subscribeToEventDeletes(
+  callback: (eventId: string) => void
+) {
+  return supabase
+    .channel('events-delete')
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'events' },
+      (payload) => callback((payload.old as any).id)
     )
     .subscribe();
 }

@@ -6,9 +6,10 @@ import FeedView from './components/FeedView';
 import ChatView from './components/ChatView';
 import CameraView from './components/CameraView';
 import GamificationView from './components/GamificationView';
+import AgendaView from './components/AgendaView';
 import UserProfile from './components/UserProfile';
 import { AppTab } from './types';
-import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2 } from 'lucide-react';
+import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, currentUser, members, posts, logout } = useStore();
@@ -77,6 +78,8 @@ const AppContent: React.FC = () => {
         return <ChatView />;
       case AppTab.MISSIONS:
         return <GamificationView />;
+      case AppTab.AGENDA:
+        return <AgendaView />;
       case AppTab.PROFILE:
         return currentUser ? (
           <UserProfile
@@ -177,6 +180,13 @@ const AppContent: React.FC = () => {
           active={activeTab === AppTab.CHAT}
           onClick={() => handleTabChange(AppTab.CHAT)}
           icon={<MessageCircle size={26} />}
+        />
+
+        {/* Button: Agenda */}
+        <NavButton
+          active={activeTab === AppTab.AGENDA}
+          onClick={() => handleTabChange(AppTab.AGENDA)}
+          icon={<Calendar size={26} />}
         />
 
         {/* Button 5: Profile */}

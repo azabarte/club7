@@ -37,6 +37,12 @@ import {
     createMember,
     updateMemberDetails,
     deleteMember as deleteMemberApi,
+    Event,
+    getEvents,
+    createEvent,
+    deleteEvent,
+    subscribeToEvents,
+    subscribeToEventDeletes,
 } from './supabase';
 
 interface StoreState {
@@ -52,6 +58,7 @@ interface StoreState {
     missionProgress: MissionProgress[];
     postReactions: Record<string, Reaction[]>; // postId -> array of Reaction objects with user_id
     postComments: Record<string, Comment[]>; // postId -> array of comments
+    events: Event[];
 
     // Loading states
     isLoading: boolean;
@@ -74,6 +81,8 @@ interface StoreState {
     addNewMember: (name: string) => Promise<ClubMember | null>;
     updateMember: (id: string, updates: Partial<ClubMember>) => Promise<boolean>;
     deleteMemberAction: (id: string) => Promise<boolean>;
+    addEventAction: (event: Omit<Event, 'id' | 'created_at'>) => Promise<boolean>;
+    deleteEventAction: (id: string) => Promise<boolean>;
 }
 
 const StoreContext = createContext<StoreState | null>(null);
@@ -100,6 +109,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const [missionProgress, setMissionProgress] = useState<MissionProgress[]>([]);
     const [postReactions, setPostReactions] = useState<Record<string, Reaction[]>>({});
     const [postComments, setPostComments] = useState<Record<string, Comment[]>>({});
+    const [events, setEvents] = useState<Event[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Load all data
@@ -110,15 +120,17 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
             setMembers(membersData);
 
             if (isAuthenticated) {
-                const [postsData, messagesData, missionsData] = await Promise.all([
+                const [postsData, messagesData, missionsData, eventsData] = await Promise.all([
                     getPosts(),
                     getMessages(),
                     getMissions(),
+                    getEvents()
                 ]);
 
                 setPosts(postsData);
                 setMessages(messagesData);
                 setMissions(missionsData);
+                setEvents(eventsData);
 
                 // Load reactions for all posts (now with full Reaction objects including user_id)
                 const reactionsMap: Record<string, Reaction[]> = {};
@@ -218,6 +230,19 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
             // Reactions are refreshed per-post basis
         });
 
+        // Subscribe to events
+        const eventsChannel = subscribeToEvents((newEvent) => {
+            setEvents(prev => {
+                const exists = prev.some(e => e.id === newEvent.id);
+                if (exists) return prev;
+                return [...prev, newEvent].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+            });
+        });
+
+        const eventsDeleteChannel = subscribeToEventDeletes((eventId) => {
+            setEvents(prev => prev.filter(e => e.id !== eventId));
+        });
+
         // Initial data load
         refreshData();
 
@@ -229,6 +254,8 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
             commentsChannel.unsubscribe();
             commentsDeleteChannel.unsubscribe();
             reactionsChannel.unsubscribe();
+            eventsChannel.unsubscribe();
+            eventsDeleteChannel.unsubscribe();
         };
     }, [isAuthenticated, refreshData]);
 
@@ -506,6 +533,23 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return success;
     };
 
+    const addEventAction = async (event: Omit<Event, 'id' | 'created_at'>): Promise<boolean> => {
+        const newEvent = await createEvent(event);
+        if (newEvent) {
+            setEvents(prev => [...prev, newEvent].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()));
+            return true;
+        }
+        return false;
+    };
+
+    const deleteEventAction = async (id: string): Promise<boolean> => {
+        const success = await deleteEvent(id);
+        if (success) {
+            setEvents(prev => prev.filter(e => e.id !== id));
+        }
+        return success;
+    };
+
     const value: StoreState = {
         isAuthenticated,
         currentUser,
@@ -534,6 +578,9 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         addNewMember,
         updateMember,
         deleteMemberAction,
+        events,
+        addEventAction,
+        deleteEventAction,
     };
 
     return (
