@@ -6,6 +6,8 @@ import {
     Message,
     Mission,
     MissionProgress,
+    Reaction,
+    Comment,
     getMembers,
     getPosts,
     getMessages,
@@ -17,7 +19,10 @@ import {
     completeMission,
     uploadMedia,
     addReaction,
+    removeReaction,
     getReactionsForPost,
+    getCommentsForPost,
+    addComment,
     subscribeToMessages,
     subscribeToPosts,
     subscribeToMessageDeletes,
@@ -41,7 +46,8 @@ interface StoreState {
     messages: Message[];
     missions: Mission[];
     missionProgress: MissionProgress[];
-    postReactions: Record<string, string[]>; // postId -> array of emojis
+    postReactions: Record<string, Reaction[]>; // postId -> array of Reaction objects with user_id
+    postComments: Record<string, Comment[]>; // postId -> array of comments
 
     // Loading states
     isLoading: boolean;
@@ -55,6 +61,7 @@ interface StoreState {
     sendNewMessage: (type: 'text' | 'image' | 'audio' | 'sticker', content?: string, file?: File) => Promise<boolean>;
     completeMissionAction: (missionId: string) => Promise<boolean>;
     toggleReaction: (postId: string, emoji: string) => Promise<void>;
+    addCommentAction: (postId: string, content: string) => Promise<boolean>;
     getMemberById: (id: string) => ClubMember | undefined;
     updateAvatar: (avatarUrl: string) => Promise<boolean>;
     deleteMessageAction: (messageId: string) => Promise<boolean>;
@@ -86,7 +93,8 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [missions, setMissions] = useState<Mission[]>([]);
     const [missionProgress, setMissionProgress] = useState<MissionProgress[]>([]);
-    const [postReactions, setPostReactions] = useState<Record<string, string[]>>({});
+    const [postReactions, setPostReactions] = useState<Record<string, Reaction[]>>({});
+    const [postComments, setPostComments] = useState<Record<string, Comment[]>>({});
     const [isLoading, setIsLoading] = useState(true);
 
     // Load all data
@@ -107,13 +115,17 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
                 setMessages(messagesData);
                 setMissions(missionsData);
 
-                // Load reactions for all posts
-                const reactionsMap: Record<string, string[]> = {};
+                // Load reactions for all posts (now with full Reaction objects including user_id)
+                const reactionsMap: Record<string, Reaction[]> = {};
+                const commentsMap: Record<string, Comment[]> = {};
                 for (const post of postsData) {
                     const reactions = await getReactionsForPost(post.id);
-                    reactionsMap[post.id] = reactions.map(r => r.emoji);
+                    reactionsMap[post.id] = reactions;
+                    const comments = await getCommentsForPost(post.id);
+                    commentsMap[post.id] = comments;
                 }
                 setPostReactions(reactionsMap);
+                setPostComments(commentsMap);
 
                 // Load mission progress for current user
                 if (currentUser) {
@@ -342,21 +354,44 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         if (!currentUser) return;
 
         const currentReactions = postReactions[postId] || [];
-        const hasReaction = currentReactions.includes(emoji);
+        const existingReaction = currentReactions.find(r => r.user_id === currentUser.id && r.emoji === emoji);
 
-        if (hasReaction) {
-            // Remove reaction (in real app, would call removeReaction)
+        if (existingReaction) {
+            // Remove reaction
+            await removeReaction(postId, currentUser.id, emoji);
             setPostReactions(prev => ({
                 ...prev,
-                [postId]: prev[postId].filter(e => e !== emoji)
+                [postId]: prev[postId].filter(r => !(r.user_id === currentUser.id && r.emoji === emoji))
             }));
         } else {
+            // Add reaction
             await addReaction(postId, currentUser.id, emoji);
+            const newReaction: Reaction = {
+                id: `temp_${Date.now()}`,
+                post_id: postId,
+                user_id: currentUser.id,
+                emoji,
+                created_at: new Date().toISOString()
+            };
             setPostReactions(prev => ({
                 ...prev,
-                [postId]: [...(prev[postId] || []), emoji]
+                [postId]: [...(prev[postId] || []), newReaction]
             }));
         }
+    };
+
+    const addCommentAction = async (postId: string, content: string): Promise<boolean> => {
+        if (!currentUser || !content.trim()) return false;
+
+        const comment = await addComment(postId, currentUser.id, content.trim());
+        if (comment) {
+            setPostComments(prev => ({
+                ...prev,
+                [postId]: [...(prev[postId] || []), comment]
+            }));
+            return true;
+        }
+        return false;
     };
 
     const getMemberById = (id: string): ClubMember | undefined => {
@@ -429,6 +464,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         missions,
         missionProgress,
         postReactions,
+        postComments,
         isLoading,
         login,
         logout,
@@ -438,6 +474,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         sendNewMessage,
         completeMissionAction,
         toggleReaction,
+        addCommentAction,
         getMemberById,
         updateAvatar,
         deleteMessageAction,

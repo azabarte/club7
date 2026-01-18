@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
-import { Post } from '../lib/supabase';
-import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile } from 'lucide-react';
+import { Post, Reaction, Comment } from '../lib/supabase';
+import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send } from 'lucide-react';
 
 interface FeedViewProps {
   posts: Post[];
@@ -9,10 +9,13 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
-  const { members, currentUser, postReactions, toggleReaction, isLoading, deletePostAction } = useStore();
+  const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, isLoading, deletePostAction } = useStore();
   const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
   const [emojiPickerOpenFor, setEmojiPickerOpenFor] = useState<string | null>(null);
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
+  const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -41,6 +44,37 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
       setMenuOpenForPost(null);
     }
   };
+
+  const handleAddComment = async (postId: string) => {
+    const text = commentText[postId]?.trim();
+    if (!text) return;
+
+    await addCommentAction(postId, text);
+    setCommentText(prev => ({ ...prev, [postId]: '' }));
+  };
+
+  // Video auto-play on scroll (Intersection Observer)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) {
+            video.play().catch(() => { }); // Ignore autoplay errors
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.6 } // Play when 60% visible
+    );
+
+    videoRefs.current.forEach((video) => {
+      observer.observe(video);
+    });
+
+    return () => observer.disconnect();
+  }, [posts]);
 
   // More fun emojis organized by category
   const quickEmojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '💀', '🙌'];
@@ -73,23 +107,23 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
   return (
     <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
-      {/* Stories / Active Members */}
-      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+      {/* Stories / Active Members - Instagram Style (larger) */}
+      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
         {/* Filter out admin users unless current user is admin */}
         {members.filter(m => currentUser?.is_admin || !m.is_admin).map((member) => (
           <button
             key={member.id}
             onClick={() => onUserClick(member.id)}
-            className="flex flex-col items-center gap-1 min-w-[70px] active:scale-95 transition-transform"
+            className="flex flex-col items-center gap-2 min-w-[80px] active:scale-95 transition-transform"
           >
-            <div className={`w-16 h-16 rounded-full p-[3px] ${member.id === currentUser?.id ? 'bg-gradient-to-tr from-indigo-400 to-cyan-400' : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'}`}>
+            <div className={`w-20 h-20 rounded-full p-[3px] ${member.id === currentUser?.id ? 'bg-gradient-to-tr from-indigo-400 to-cyan-400' : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'}`}>
               <img
                 src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
                 alt={member.name}
-                className="w-full h-full rounded-full object-cover border-2 border-white bg-gray-100"
+                className="w-full h-full rounded-full object-cover border-[3px] border-white bg-gray-100"
               />
             </div>
-            <span className="text-xs font-medium text-gray-700">{member.name}</span>
+            <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">{member.name}</span>
           </button>
         ))}
       </div>
@@ -106,17 +140,22 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
       {posts.map((post) => {
         const author = getMember(post.user_id);
-        const reactions = postReactions[post.id] || post.stickers || [];
+        const reactions = postReactions[post.id] || [];
+        const comments = postComments[post.id] || [];
 
         // Count reactions by emoji
         const reactionCounts: Record<string, number> = {};
-        reactions.forEach((emoji: string) => {
-          reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+        reactions.forEach((r: Reaction) => {
+          reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
         });
 
         // Get unique emojis used
         const uniqueEmojis = Object.keys(reactionCounts);
         const totalReactions = reactions.length;
+
+        // Get reactors with their info
+        const reactorUsers = reactions.map(r => getMember(r.user_id)).filter(Boolean);
+        const uniqueReactorUsers = [...new Map(reactorUsers.map(u => [u?.id, u])).values()];
 
         return (
           <div key={post.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -167,7 +206,16 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
             <div className="relative aspect-[4/5] bg-gray-100">
               {post.type === 'video' ? (
                 <>
-                  <video src={post.url} controls className="w-full h-full object-cover" />
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(post.id, el);
+                    }}
+                    src={post.url}
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
                   <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                     <Film size={12} />
                     Video
@@ -190,7 +238,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {quickEmojis.map(emoji => {
                   const count = reactionCounts[emoji] || 0;
-                  const isActive = count > 0;
+                  const isActive = reactions.some(r => r.user_id === currentUser?.id && r.emoji === emoji);
                   return (
                     <button
                       key={emoji}
@@ -239,27 +287,27 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 </div>
               )}
 
-              {/* Show who reacted - clickable reactions summary */}
+              {/* Show who reacted - with REAL users */}
               {totalReactions > 0 && (
                 <button
                   onClick={() => setShowReactorsFor(showReactorsFor === post.id ? null : post.id)}
                   className="flex items-center gap-2 mb-3 hover:bg-gray-50 rounded-full px-2 py-1 -ml-2 transition-colors"
                 >
-                  {/* Stack of avatars who reacted */}
+                  {/* Stack of avatars who actually reacted */}
                   <div className="flex -space-x-2">
-                    {members.slice(0, Math.min(3, totalReactions)).map((member, i) => (
+                    {uniqueReactorUsers.slice(0, 3).map((member) => (
                       <img
-                        key={member.id}
-                        src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                        key={member?.id}
+                        src={member?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member?.name}`}
                         className="w-6 h-6 rounded-full border-2 border-white"
                         alt=""
                       />
                     ))}
                   </div>
                   <span className="text-sm text-gray-600">
-                    <span className="font-bold">{members[0]?.name}</span>
-                    {totalReactions > 1 && (
-                      <> y <span className="font-bold">{totalReactions - 1} más</span></>
+                    <span className="font-bold">{uniqueReactorUsers[0]?.name}</span>
+                    {uniqueReactorUsers.length > 1 && (
+                      <> y <span className="font-bold">{uniqueReactorUsers.length - 1} más</span></>
                     )}
                     {' reaccionaron '}
                     {uniqueEmojis.slice(0, 3).join('')}
@@ -267,36 +315,96 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 </button>
               )}
 
-              {/* Expanded reactors list */}
+              {/* Expanded reactors list - REAL users */}
               {showReactorsFor === post.id && totalReactions > 0 && (
                 <div className="bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
                   <h4 className="text-sm font-bold text-gray-600 mb-2">Reacciones</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {members.map((member) => {
-                      // Show each member with a random reaction for demo
-                      const memberEmoji = uniqueEmojis[Math.floor(Math.random() * uniqueEmojis.length)] || '❤️';
+                    {reactions.map((reaction) => {
+                      const member = getMember(reaction.user_id);
+                      if (!member) return null;
                       return (
-                        <div key={member.id} className="flex items-center gap-2">
+                        <div key={reaction.id} className="flex items-center gap-2">
                           <img
                             src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
                             className="w-8 h-8 rounded-full"
                             alt=""
                           />
                           <span className="text-sm font-medium text-gray-700 flex-1">{member.name}</span>
-                          <span className="text-lg">{memberEmoji}</span>
+                          <span className="text-lg">{reaction.emoji}</span>
                         </div>
                       );
-                    }).slice(0, totalReactions)}
+                    })}
                   </div>
                 </div>
               )}
 
               {post.caption && (
-                <p className="text-gray-800 text-lg">
+                <p className="text-gray-800 text-lg mb-3">
                   <span className="font-bold mr-2">{author?.name}</span>
                   {post.caption}
                 </p>
               )}
+
+              {/* Comments section */}
+              <div className="border-t border-gray-100 pt-3 mt-2">
+                {/* Show comments count / toggle */}
+                <button
+                  onClick={() => setShowCommentsFor(showCommentsFor === post.id ? null : post.id)}
+                  className="text-gray-500 text-sm font-medium mb-2 flex items-center gap-1"
+                >
+                  <MessageCircle size={16} />
+                  {comments.length > 0 ? `Ver ${comments.length} comentario${comments.length > 1 ? 's' : ''}` : 'Comentar'}
+                </button>
+
+                {/* Comments list */}
+                {showCommentsFor === post.id && (
+                  <div className="space-y-3 mb-3">
+                    {comments.map((comment) => {
+                      const commentAuthor = getMember(comment.user_id);
+                      return (
+                        <div key={comment.id} className="flex gap-2">
+                          <img
+                            src={commentAuthor?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${commentAuthor?.name || 'user'}`}
+                            className="w-8 h-8 rounded-full flex-shrink-0"
+                            alt=""
+                          />
+                          <div className="flex-1 bg-gray-50 rounded-2xl px-3 py-2">
+                            <span className="font-bold text-gray-800 text-sm">{commentAuthor?.name || 'Usuario'}</span>
+                            <p className="text-gray-700 text-sm">{comment.content}</p>
+                            <span className="text-xs text-gray-400">{formatTimeAgo(comment.created_at)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add comment input */}
+                    <div className="flex gap-2 items-center">
+                      <img
+                        src={currentUser?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser?.name || 'me'}`}
+                        className="w-8 h-8 rounded-full flex-shrink-0"
+                        alt=""
+                      />
+                      <div className="flex-1 flex gap-2 bg-gray-50 rounded-full px-3 py-2">
+                        <input
+                          type="text"
+                          placeholder="Añade un comentario..."
+                          value={commentText[post.id] || ''}
+                          onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                          className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
+                        />
+                        <button
+                          onClick={() => handleAddComment(post.id)}
+                          className="text-indigo-500 hover:text-indigo-600"
+                        >
+                          <Send size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );

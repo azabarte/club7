@@ -71,6 +71,14 @@ export interface MissionProgress {
   completed_at: string | null;
 }
 
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
 // ============================================
 // API Functions
 // ============================================
@@ -222,6 +230,52 @@ export async function removeReaction(
     .eq('post_id', postId)
     .eq('user_id', userId)
     .eq('emoji', emoji);
+
+  return !error;
+}
+
+// Comments
+export async function getCommentsForPost(postId: string): Promise<Comment[]> {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching comments:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function addComment(
+  postId: string,
+  userId: string,
+  content: string
+): Promise<Comment | null> {
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({
+      post_id: postId,
+      user_id: userId,
+      content
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding comment:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function deleteComment(commentId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('comments')
+    .delete()
+    .eq('id', commentId);
 
   return !error;
 }
