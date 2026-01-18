@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { ClubMember, Post, uploadMedia } from '../lib/supabase';
-import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Wand2, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Wand2, RefreshCcw, Trash2 } from 'lucide-react';
 import { generateAvatarFromSelfie, isGeminiConfigured } from '../lib/gemini';
 import CameraView from './CameraView';
 
@@ -29,7 +29,7 @@ const avatarOptions = [
 ];
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
-  const { currentUser, updateAvatar, addNewMember, members, updateMember } = useStore();
+  const { currentUser, updateAvatar, addNewMember, members, updateMember, deleteMemberAction } = useStore();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -42,6 +42,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
   const [editForm, setEditForm] = useState({ name: '', password: '', xp: 0, level: 1, is_admin: false, stickers_unlocked: [] as string[] });
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const selfieInputRef = useRef<HTMLInputElement>(null);
 
   const userPosts = posts
@@ -167,6 +168,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     });
 
     setEditingUser(null);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!editingUser) return;
+
+    // Don't allow deleting yourself
+    if (currentUser && editingUser.id === currentUser.id) {
+      alert('No puedes eliminarte a ti mismo');
+      return;
+    }
+
+    const confirmDelete = window.confirm(`¿Estás seguro que quieres eliminar a ${editingUser.name}? Esta acción no se puede deshacer.`);
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    const success = await deleteMemberAction(editingUser.id);
+    setIsDeleting(false);
+
+    if (success) {
+      setEditingUser(null);
+    }
   };
 
   return (
@@ -618,6 +640,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
                   >
                     Guardar Cambios
                   </button>
+
+                  {/* Delete button - only show if not editing yourself */}
+                  {currentUser && editingUser && editingUser.id !== currentUser.id && (
+                    <button
+                      onClick={handleDeleteUser}
+                      disabled={isDeleting}
+                      className="w-full bg-red-500/20 border border-red-500/50 text-red-400 py-3 rounded-xl font-bold mt-2 hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          Eliminando...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={18} />
+                          Eliminar Usuario
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

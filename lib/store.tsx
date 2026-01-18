@@ -27,6 +27,7 @@ import {
     deletePost as deletePostApi,
     createMember,
     updateMemberDetails,
+    deleteMember as deleteMemberApi,
 } from './supabase';
 
 interface StoreState {
@@ -60,6 +61,7 @@ interface StoreState {
     deletePostAction: (postId: string) => Promise<boolean>;
     addNewMember: (name: string) => Promise<ClubMember | null>;
     updateMember: (id: string, updates: Partial<ClubMember>) => Promise<boolean>;
+    deleteMemberAction: (id: string) => Promise<boolean>;
 }
 
 const StoreContext = createContext<StoreState | null>(null);
@@ -410,6 +412,14 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return false;
     };
 
+    const deleteMemberAction = async (id: string): Promise<boolean> => {
+        const success = await deleteMemberApi(id);
+        if (success) {
+            setMembers(prev => prev.filter(m => m.id !== id));
+        }
+        return success;
+    };
+
     const value: StoreState = {
         isAuthenticated,
         currentUser,
@@ -434,6 +444,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         deletePostAction,
         addNewMember,
         updateMember,
+        deleteMemberAction,
     };
 
     return (

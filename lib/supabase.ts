@@ -437,6 +437,19 @@ export async function createMember(name: string): Promise<ClubMember | null> {
   return data;
 }
 
+export async function deleteMember(memberId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('club_members')
+    .delete()
+    .eq('id', memberId);
+
+  if (error) {
+    console.error('Error deleting member:', error);
+    return false;
+  }
+  return true;
+}
+
 // Realtime subscriptions for deletes
 export function subscribeToMessageDeletes(
   callback: (messageId: string) => void
