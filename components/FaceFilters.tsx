@@ -34,14 +34,28 @@ export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [isDetecting, setIsDetecting] = useState(false);
+    const [useStaticMode, setUseStaticMode] = useState(false); // Fallback mode
     const animationRef = useRef<number>();
     const particlesRef = useRef<Array<{ x: number, y: number, vx: number, vy: number, emoji: string, size: number }>>([]);
+    const loadingTimeoutRef = useRef<NodeJS.Timeout>();
 
     // Load face-api models
     useEffect(() => {
         const loadModels = async () => {
             try {
-                // Use CDN for models
+                // Set a timeout to fallback to static mode if models take too long
+                loadingTimeoutRef.current = setTimeout(() => {
+                    if (!modelsLoaded) {
+                        console.warn('Face API models taking too long, switching to static mode');
+                        setUseStaticMode(true);
+                        setModelsLoaded(true); // Pretend loaded to unblock
+                        onReady?.();
+                    }
+                }, 3000); // 3 seconds timeout
+
+                // Use CDN for models - Vlad Mandic's build requires specific path structure
+                // Trying a known working path or potentially local if we had it
+                // For now, let's stick to the CDN but handle failure
                 const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/model';
 
                 await Promise.all([
@@ -49,19 +63,32 @@ export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter
                     faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
                 ]);
 
+                if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+                setUseStaticMode(false);
                 setModelsLoaded(true);
                 onReady?.();
             } catch (error) {
                 console.error('Error loading face-api models:', error);
+                // Fallback to static mode immediately on error
+                if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+                setUseStaticMode(true);
+                setModelsLoaded(true);
+                onReady?.();
             }
         };
 
-        loadModels();
+        if (!modelsLoaded && !useStaticMode) {
+            loadModels();
+        }
+
+        return () => {
+            if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+        };
     }, [onReady]);
 
     // Face detection and rendering loop
     const detectAndRender = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current || !modelsLoaded || !activeFilter) {
+        if (!videoRef.current || !canvasRef.current || !activeFilter) {
             animationRef.current = requestAnimationFrame(detectAndRender);
             return;
         }
@@ -79,118 +106,190 @@ export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Clear canvas
+        // Horizontal flip for selfie mode (matched with video CSS)
+        // We need to draw the text flipped if we want it to look right? 
+        // Actually the canvas is overlaid on a flipped video. 
+        // If we draw regular text, it will look flipped to the user if we flip the canvas.
+        // Let's keep canvas 1:1 with video coordinate space.
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        try {
-            const detections = await faceapi
-                .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320 }))
-                .withFaceLandmarks(true);
+        const filter = FILTERS[activeFilter as keyof typeof FILTERS];
+        if (!filter) return;
 
-            if (detections.length > 0) {
-                const filter = FILTERS[activeFilter as keyof typeof FILTERS];
+        if (useStaticMode) {
+            // RENDER STATIC OVERLAY (FALLBACK)
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const faceWidth = canvas.width * 0.5; // Guess face size
+            const faceHeight = canvas.height * 0.4;
 
-                for (const detection of detections) {
-                    const landmarks = detection.landmarks;
-                    const box = detection.detection.box;
+            filter.positions.forEach(position => {
+                ctx.font = `${Math.floor(faceWidth * 0.4)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-                    // Get key points
-                    const nose = landmarks.getNose()[3];
-                    const leftEye = landmarks.getLeftEye()[0];
-                    const rightEye = landmarks.getRightEye()[3];
-                    const mouth = landmarks.getMouth()[0];
-                    const jaw = landmarks.getJawOutline();
-
-                    const eyeCenter = {
-                        x: (leftEye.x + rightEye.x) / 2,
-                        y: (leftEye.y + rightEye.y) / 2
-                    };
-
-                    const faceWidth = box.width;
-                    const faceHeight = box.height;
-
-                    // Draw filter based on positions
-                    filter.positions.forEach(position => {
-                        ctx.font = `${Math.floor(faceWidth * 0.4)}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-
-                        switch (position) {
-                            case 'nose':
-                                ctx.font = `${Math.floor(faceWidth * 0.3)}px Arial`;
-                                ctx.fillText(filter.emoji, nose.x, nose.y);
-                                break;
-
-                            case 'ears':
-                                ctx.font = `${Math.floor(faceWidth * 0.35)}px Arial`;
-                                // Left ear
-                                ctx.fillText(filter.emoji, box.x + faceWidth * 0.15, box.y - faceHeight * 0.1);
-                                // Right ear  
-                                ctx.fillText(filter.emoji, box.x + faceWidth * 0.85, box.y - faceHeight * 0.1);
-                                break;
-
-                            case 'eyes':
-                                ctx.font = `${Math.floor(faceWidth * 0.5)}px Arial`;
-                                ctx.fillText(filter.emoji, eyeCenter.x, eyeCenter.y);
-                                break;
-
-                            case 'top':
-                                ctx.font = `${Math.floor(faceWidth * 0.5)}px Arial`;
-                                ctx.fillText(filter.emoji, box.x + faceWidth / 2, box.y - faceHeight * 0.2);
-                                break;
-
-                            case 'sides':
-                                ctx.font = `${Math.floor(faceWidth * 0.25)}px Arial`;
-                                ctx.fillText('🎊', box.x - faceWidth * 0.1, box.y + faceHeight * 0.3);
-                                ctx.fillText('🎊', box.x + faceWidth * 1.1, box.y + faceHeight * 0.3);
-                                break;
-
-                            case 'face':
-                                ctx.font = `${Math.floor(faceWidth * 0.8)}px Arial`;
-                                ctx.globalAlpha = 0.7;
-                                ctx.fillText(filter.emoji, box.x + faceWidth / 2, box.y + faceHeight / 2);
-                                ctx.globalAlpha = 1;
-                                break;
-
-                            case 'floating':
-                                // Add floating particles
-                                if (particlesRef.current.length < 15) {
-                                    particlesRef.current.push({
-                                        x: box.x + Math.random() * faceWidth,
-                                        y: box.y + faceHeight,
-                                        vx: (Math.random() - 0.5) * 3,
-                                        vy: -2 - Math.random() * 2,
-                                        emoji: filter.emoji,
-                                        size: 20 + Math.random() * 20
-                                    });
-                                }
-                                break;
-                        }
-                    });
+                switch (position) {
+                    case 'nose':
+                        ctx.fillText(filter.emoji, centerX, centerY);
+                        break;
+                    case 'eyes':
+                        ctx.font = `${Math.floor(faceWidth * 0.6)}px Arial`;
+                        ctx.fillText(filter.emoji, centerX, centerY - faceHeight * 0.1);
+                        break;
+                    case 'top':
+                        ctx.fillText(filter.emoji, centerX, centerY - faceHeight * 0.5);
+                        break;
+                    case 'ears':
+                        ctx.fillText(filter.emoji, centerX - faceWidth * 0.3, centerY - faceHeight * 0.3);
+                        ctx.fillText(filter.emoji, centerX + faceWidth * 0.3, centerY - faceHeight * 0.3);
+                        break;
+                    case 'face':
+                        ctx.font = `${Math.floor(faceWidth * 0.8)}px Arial`;
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillText(filter.emoji, centerX, centerY);
+                        ctx.globalAlpha = 1;
+                        break;
+                    case 'sides':
+                        ctx.fillText('✨', centerX - faceWidth * 0.6, centerY);
+                        ctx.fillText('✨', centerX + faceWidth * 0.6, centerY);
+                        break;
                 }
+            });
+
+            // Add static particles
+            if (filter.positions.includes('floating')) {
+                ctx.font = `${Math.floor(faceWidth * 0.3)}px Arial`;
+                ctx.fillText(filter.emoji, centerX - faceWidth * 0.6, centerY - faceHeight * 0.6);
+                ctx.fillText(filter.emoji, centerX + faceWidth * 0.6, centerY + faceHeight * 0.6);
+                ctx.fillText(filter.emoji, centerX, centerY + faceHeight * 0.8);
             }
 
-            // Render floating particles
-            if (activeFilter && FILTERS[activeFilter as keyof typeof FILTERS]?.positions.includes('floating')) {
-                particlesRef.current = particlesRef.current.filter(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.05; // Gravity
+        } else {
+            // RENDER AI TRACKED OVERLAY
+            try {
+                // Use a lighter detector setting
+                const detections = await faceapi
+                    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 }))
+                    .withFaceLandmarks();
 
-                    ctx.font = `${p.size}px Arial`;
-                    ctx.textAlign = 'center';
-                    ctx.fillText(p.emoji, p.x, p.y);
+                if (detections.length > 0) {
+                    for (const detection of detections) {
+                        const landmarks = detection.landmarks;
+                        const box = detection.detection.box;
 
-                    return p.y < canvas.height + 50 && p.y > -50;
+                        // Get key points
+                        const nose = landmarks.getNose()[3];
+                        const leftEye = landmarks.getLeftEye()[0];
+                        const rightEye = landmarks.getRightEye()[3];
+                        // const mouth = landmarks.getMouth()[0];
+                        const jaw = landmarks.getJawOutline();
+                        const jawBottom = jaw[8]; // Bottom of chin
+
+                        const eyeCenter = {
+                            x: (leftEye.x + rightEye.x) / 2,
+                            y: (leftEye.y + rightEye.y) / 2
+                        };
+
+                        // Calculate slightly better face dimensions from landmarks
+                        const faceWidth = box.width;
+                        const faceHeight = box.height;
+
+                        // Draw filter based on positions
+                        filter.positions.forEach(position => {
+                            ctx.font = `${Math.floor(faceWidth * 0.4)}px Arial`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            switch (position) {
+                                case 'nose':
+                                    ctx.font = `${Math.floor(faceWidth * 0.35)}px Arial`;
+                                    ctx.fillText(filter.emoji, nose.x, nose.y);
+                                    break;
+
+                                case 'ears':
+                                    ctx.font = `${Math.floor(faceWidth * 0.4)}px Arial`;
+                                    // Estimate ear positions relative to eyes and width
+                                    ctx.fillText(filter.emoji, leftEye.x - faceWidth * 0.2, leftEye.y - faceHeight * 0.25);
+                                    ctx.fillText(filter.emoji, rightEye.x + faceWidth * 0.2, rightEye.y - faceHeight * 0.25);
+                                    break;
+
+                                case 'eyes':
+                                    ctx.font = `${Math.floor(faceWidth * 0.6)}px Arial`;
+                                    ctx.fillText(filter.emoji, eyeCenter.x, eyeCenter.y);
+                                    break;
+
+                                case 'top':
+                                    ctx.font = `${Math.floor(faceWidth * 0.6)}px Arial`;
+                                    // Top of forehead estimate
+                                    ctx.fillText(filter.emoji, box.x + box.width / 2, box.y - faceHeight * 0.1);
+                                    break;
+
+                                case 'sides':
+                                    ctx.font = `${Math.floor(faceWidth * 0.3)}px Arial`;
+                                    ctx.fillText('✨', box.x - faceWidth * 0.1, box.y + faceHeight * 0.5);
+                                    ctx.fillText('✨', box.x + faceWidth * 1.1, box.y + faceHeight * 0.5);
+                                    break;
+
+                                case 'face':
+                                    ctx.font = `${Math.floor(faceWidth * 0.9)}px Arial`;
+                                    ctx.globalAlpha = 0.6;
+                                    ctx.fillText(filter.emoji, box.x + box.width / 2, box.y + box.height / 2);
+                                    ctx.globalAlpha = 1;
+                                    break;
+
+                                case 'floating':
+                                    // Add floating particles logic
+                                    if (particlesRef.current.length < 15) {
+                                        particlesRef.current.push({
+                                            x: box.x + Math.random() * faceWidth,
+                                            y: box.y + faceHeight,
+                                            vx: (Math.random() - 0.5) * 5,
+                                            vy: -3 - Math.random() * 4,
+                                            emoji: filter.emoji,
+                                            size: 20 + Math.random() * 30
+                                        });
+                                    }
+                                    break;
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                // If AI detection errors repeatedly, maybe switch to static?
+                // For now just ignore frame
+            }
+        }
+
+        // Render particles (shared for both modes for 'floating')
+        if (filter.positions.includes('floating')) {
+            particlesRef.current = particlesRef.current.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1; // Gravity
+
+                ctx.font = `${p.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(p.emoji, p.x, p.y);
+
+                return p.y < canvas.height + 100 && p.y > -100;
+            });
+
+            // Replenish in static mode since we don't have the detection loop adding them
+            if (useStaticMode && particlesRef.current.length < 10) {
+                particlesRef.current.push({
+                    x: canvas.width / 2 + (Math.random() - 0.5) * canvas.width,
+                    y: canvas.height,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: -5 - Math.random() * 5,
+                    emoji: filter.emoji,
+                    size: 30 + Math.random() * 20
                 });
             }
-
-        } catch (error) {
-            // Silent fail for detection errors
         }
 
         animationRef.current = requestAnimationFrame(detectAndRender);
-    }, [videoRef, activeFilter, modelsLoaded]);
+    }, [videoRef, activeFilter, modelsLoaded, useStaticMode]);
 
     // Start/stop detection loop
     useEffect(() => {
@@ -221,12 +320,12 @@ export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter
         <canvas
             ref={canvasRef}
             className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ zIndex: 10 }}
+            style={{ zIndex: 10, transform: 'scaleX(-1)' }} // Canvas itself should fail to flip if we want direct overlay match with flipped video
         />
     );
 };
 
-// Filter selector component
+// Filter selector component remains same...
 interface FilterSelectorProps {
     activeFilter: string | null;
     onSelectFilter: (filter: string | null) => void;
@@ -246,6 +345,7 @@ export const FilterSelector: React.FC<FilterSelectorProps> = ({ activeFilter, on
         { id: 'devil', emoji: '😈', label: 'Diablito' },
         { id: 'angel', emoji: '😇', label: 'Angelito' },
         { id: 'clown', emoji: '🤡', label: 'Payaso' },
+        { id: 'alien', emoji: '👽', label: 'Alien' },
     ];
 
     return (
@@ -255,12 +355,12 @@ export const FilterSelector: React.FC<FilterSelectorProps> = ({ activeFilter, on
                     key={filter.id || 'none'}
                     onClick={() => onSelectFilter(filter.id)}
                     className={`flex flex-col items-center gap-1 min-w-[60px] p-2 rounded-xl transition-all ${activeFilter === filter.id
-                            ? 'bg-white/30 scale-110'
-                            : 'bg-white/10 hover:bg-white/20'
+                        ? 'bg-purple-600 shadow-lg scale-110 border border-purple-400'
+                        : 'bg-black/40 hover:bg-black/60 border border-white/10'
                         }`}
                 >
-                    <span className="text-2xl">{filter.emoji}</span>
-                    <span className="text-[10px] text-white font-medium">{filter.label}</span>
+                    <span className="text-2xl drop-shadow-md">{filter.emoji}</span>
+                    <span className="text-[10px] text-white font-bold">{filter.label}</span>
                 </button>
             ))}
         </div>

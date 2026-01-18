@@ -109,21 +109,32 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     setAiError(null);
 
     try {
-      const avatarDataUrl = await generateAvatarFromSelfie(file);
-      if (avatarDataUrl) {
-        // Convert data URL to blob and upload
-        const response = await fetch(avatarDataUrl);
-        const blob = await response.blob();
-        const avatarFile = new File([blob], `ai_avatar_${Date.now()}.png`, { type: 'image/png' });
-        const uploadedUrl = await uploadMedia(avatarFile, 'avatars');
-
-        if (uploadedUrl) {
-          const success = await updateAvatar(uploadedUrl);
+      const avatarUrl = await generateAvatarFromSelfie(file);
+      if (avatarUrl) {
+        // If it's a DiceBear URL (starts with http), use it directly
+        // If it's a data URL (base64) from direct generation, upload it
+        if (avatarUrl.startsWith('http')) {
+          const success = await updateAvatar(avatarUrl);
           if (success) {
             setShowAvatarPicker(false);
+          } else {
+            setAiError('Error al actualizar el perfil');
           }
         } else {
-          setAiError('Error al subir el avatar');
+          // Convert data URL to blob and upload
+          const response = await fetch(avatarUrl);
+          const blob = await response.blob();
+          const avatarFile = new File([blob], `ai_avatar_${Date.now()}.png`, { type: 'image/png' });
+          const uploadedUrl = await uploadMedia(avatarFile, 'avatars');
+
+          if (uploadedUrl) {
+            const success = await updateAvatar(uploadedUrl);
+            if (success) {
+              setShowAvatarPicker(false);
+            }
+          } else {
+            setAiError('Error al subir el avatar');
+          }
         }
       } else {
         setAiError('No se pudo generar el avatar. Inténtalo de nuevo.');
