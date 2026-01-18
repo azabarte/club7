@@ -112,22 +112,17 @@ const AppContent: React.FC = () => {
             BestieSocial
           </h1>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {currentUser && (
-              <div className="flex items-center gap-2 mr-2">
-                <img
-                  src={currentUser.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser.name}`}
-                  alt={currentUser.name}
-                  className="w-8 h-8 rounded-full border-2 border-indigo-200"
-                />
-                <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+              <div className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                <span className="text-xs font-black text-white uppercase tracking-tight">
                   {currentUser.name}
                 </span>
               </div>
             )}
             <button
               onClick={() => handleTabChange(AppTab.MISSIONS)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${activeTab === AppTab.MISSIONS ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${activeTab === AppTab.MISSIONS ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
             >
               <Trophy size={20} />
             </button>
