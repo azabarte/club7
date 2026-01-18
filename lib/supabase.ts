@@ -535,3 +535,49 @@ export function subscribeToPostDeletes(
     )
     .subscribe();
 }
+
+// Realtime subscription for comments
+export function subscribeToComments(
+  callback: (comment: Comment) => void
+) {
+  return supabase
+    .channel('comments-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'comments' },
+      (payload) => callback(payload.new as Comment)
+    )
+    .subscribe();
+}
+
+export function subscribeToCommentDeletes(
+  callback: (commentId: string) => void
+) {
+  return supabase
+    .channel('comments-delete')
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'comments' },
+      (payload) => callback((payload.old as any).id)
+    )
+    .subscribe();
+}
+
+// Realtime subscription for reactions
+export function subscribeToReactions(
+  callback: (reaction: Reaction, eventType: 'INSERT' | 'DELETE') => void
+) {
+  return supabase
+    .channel('reactions-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'reactions' },
+      (payload) => callback(payload.new as Reaction, 'INSERT')
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'reactions' },
+      (payload) => callback(payload.old as Reaction, 'DELETE')
+    )
+    .subscribe();
+}

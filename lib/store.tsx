@@ -27,9 +27,13 @@ import {
     subscribeToPosts,
     subscribeToMessageDeletes,
     subscribeToPostDeletes,
+    subscribeToComments,
+    subscribeToCommentDeletes,
+    subscribeToReactions,
     updateMemberAvatar,
     deleteMessage as deleteMessageApi,
     deletePost as deletePostApi,
+    deleteComment as deleteCommentApi,
     createMember,
     updateMemberDetails,
     deleteMember as deleteMemberApi,
@@ -196,6 +200,23 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
             setPosts(prev => prev.filter(p => p.id !== postId));
         });
 
+        // Subscribe to comments realtime
+        const commentsChannel = subscribeToComments((newComment) => {
+            console.log('[REALTIME] New comment received:', newComment);
+            // Comments are refreshed when viewing a post, we just log here
+        });
+
+        const commentsDeleteChannel = subscribeToCommentDeletes((commentId) => {
+            console.log('[REALTIME] Comment deleted:', commentId);
+            // Comments will refresh when viewing a post
+        });
+
+        // Subscribe to reactions realtime
+        const reactionsChannel = subscribeToReactions((reaction, eventType) => {
+            console.log('[REALTIME] Reaction event:', eventType, reaction);
+            // Reactions are refreshed per-post basis
+        });
+
         // Initial data load
         refreshData();
 
@@ -204,6 +225,9 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
             postsChannel.unsubscribe();
             messagesDeleteChannel.unsubscribe();
             postsDeleteChannel.unsubscribe();
+            commentsChannel.unsubscribe();
+            commentsDeleteChannel.unsubscribe();
+            reactionsChannel.unsubscribe();
         };
     }, [isAuthenticated, refreshData]);
 
