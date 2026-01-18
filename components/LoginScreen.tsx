@@ -68,9 +68,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     };
 
     // Filter members based on access mode
+    // Only hide the supreme admin (name = 'Admin'), other admins like Javier are visible
     const visibleMembers = isAdminMode
         ? members
-        : members.filter(m => !m.is_admin && m.name.toLowerCase() !== 'admin');
+        : members.filter(m => m.name.toLowerCase() !== 'admin');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628] flex items-center justify-center p-6">

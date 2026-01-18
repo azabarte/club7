@@ -123,10 +123,10 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
       {/* Stories / Active Members - Instagram Style (larger) */}
       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
-        {/* Sort: current user first, then others. Filter out admin users unless current user is admin */}
+        {/* Sort: current user first, then others. Only hide user named 'Admin' */}
         {[
           ...(currentUser ? [currentUser] : []),
-          ...members.filter(m => m.id !== currentUser?.id && (currentUser?.is_admin || !m.is_admin))
+          ...members.filter(m => m.id !== currentUser?.id && m.name.toLowerCase() !== 'admin')
         ].map((member) => {
           const isCurrentUser = member.id === currentUser?.id;
           return (

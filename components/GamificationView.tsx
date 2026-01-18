@@ -29,8 +29,8 @@ const GamificationView: React.FC = () => {
   const allStickers = ['🔥', '🚀', '🌈', '🐶', '🍕', '🎮', '🦄', '⭐', '🐳', '🎭', '🌅', '🗺️', '💎'];
   const unlockedStickers = currentUser?.stickers_unlocked || [];
 
-  // Non-admin members for selection
-  const selectableMembers = members.filter(m => !m.is_admin);
+  // Members for selection (exclude only the supreme admin 'Admin')
+  const selectableMembers = members.filter(m => m.name.toLowerCase() !== 'admin');
 
   if (isLoading) {
     return (
