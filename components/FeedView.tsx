@@ -15,7 +15,14 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
   const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData(true);
+    setTimeout(() => setIsRefreshing(false), 800); // Visual delay
+  };
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
@@ -172,15 +179,19 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
       <div className="flex items-center gap-2 px-2 mb-2">
         <h2 className="text-2xl font-bold text-gray-800">Lo último</h2>
         <button
-          onClick={() => refreshData(true)}
-          className="group focus:outline-none transition-transform active:scale-90 ml-1"
+          onClick={handleRefresh}
+          className="flex items-center gap-1 group focus:outline-none ml-1 transition-all active:scale-95"
+          disabled={isRefreshing}
           title="Actualizar novedades"
         >
           <img
             src="/assets/update-icon.png"
             alt="Actualizar"
-            className="w-10 h-10 animate-[pulse_3s_ease-in-out_infinite] drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] group-hover:drop-shadow-[0_0_12px_rgba(234,179,8,0.8)] transition-all"
+            className={`w-9 h-9 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] transition-all ${isRefreshing ? 'animate-spin' : ''}`}
           />
+          <span className={`text-sm font-bold text-amber-500 transition-opacity ${isRefreshing ? 'opacity-80' : 'opacity-100'}`}>
+            Actualizar
+          </span>
         </button>
       </div>
 

@@ -16,11 +16,13 @@ export const supabase: SupabaseClient = createClient(
 export interface ClubMember {
   id: string;
   name: string;
+  telegram_username?: string;
   avatar_url: string | null;
   stickers_unlocked: string[];
   xp: number;
   level: number;
   is_admin: boolean;
+  story?: string;
   password?: string;
   created_at: string;
 }

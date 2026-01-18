@@ -308,7 +308,7 @@ const AgendaView: React.FC = () => {
                                         <input
                                             type="text"
                                             required
-                                            className="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition outline-none text-lg font-medium placeholder:font-normal"
+                                            className="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition outline-none text-lg font-medium placeholder:font-normal text-gray-900"
                                             placeholder="Ej: Examen de Matemáticas"
                                             value={newEvent.title}
                                             onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
@@ -324,8 +324,8 @@ const AgendaView: React.FC = () => {
                                                     type="button"
                                                     onClick={() => setNewEvent({ ...newEvent, event_type: t.type as any, emoji: t.emoji })}
                                                     className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${newEvent.event_type === t.type
-                                                            ? `border-${t.color.split('-')[1]}-500 bg-${t.color.split('-')[1]}-50 ring-2 ring-${t.color.split('-')[1]}-200`
-                                                            : 'border-gray-100 hover:bg-gray-50'
+                                                        ? `border-${t.color.split('-')[1]}-500 bg-${t.color.split('-')[1]}-50 ring-2 ring-${t.color.split('-')[1]}-200`
+                                                        : 'border-gray-100 hover:bg-gray-50'
                                                         }`}
                                                 >
                                                     <span className="text-xl mb-1">{t.emoji}</span>
@@ -344,7 +344,7 @@ const AgendaView: React.FC = () => {
                                             <input
                                                 type="date"
                                                 required
-                                                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10"
+                                                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10 text-gray-900"
                                                 value={newEvent.event_date}
                                                 onChange={e => setNewEvent({ ...newEvent, event_date: e.target.value })}
                                             />
@@ -356,7 +356,7 @@ const AgendaView: React.FC = () => {
                                         <div className="relative">
                                             <input
                                                 type="time"
-                                                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10"
+                                                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10 text-gray-900"
                                                 value={newEvent.event_time}
                                                 onChange={e => setNewEvent({ ...newEvent, event_time: e.target.value })}
                                             />
@@ -371,7 +371,7 @@ const AgendaView: React.FC = () => {
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10"
+                                            className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10 text-gray-900"
                                             placeholder="Ej: Aula 3B, Casa de..."
                                             value={newEvent.location}
                                             onChange={e => setNewEvent({ ...newEvent, location: e.target.value })}
@@ -384,7 +384,7 @@ const AgendaView: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Notas</label>
                                     <textarea
-                                        className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-20"
+                                        className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-20 text-gray-900"
                                         placeholder="Detalles adicionales..."
                                         value={newEvent.description || ''}
                                         onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}

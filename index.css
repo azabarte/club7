@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Dancing+Script:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.font-handwriting {
+  font-family: 'Dancing Script', cursive;
+}
 
 :root {
   /* BestieSocial Color Palette */
@@ -7,24 +15,20 @@
   --accent-turquoise: #4ECDC4;
   --accent-pink: #FF6B9D;
   --accent-orange: #FF9F43;
-  
+
   /* Rainbow gradient for title */
-  --rainbow-gradient: linear-gradient(
-    90deg,
-    #FF6B6B 0%,
-    #FFE66D 25%,
-    #4ECDC4 50%,
-    #45B7D1 75%,
-    #FF6B9D 100%
-  );
-  
+  --rainbow-gradient: linear-gradient(90deg,
+      #FF6B6B 0%,
+      #FFE66D 25%,
+      #4ECDC4 50%,
+      #45B7D1 75%,
+      #FF6B9D 100%);
+
   /* Space gradient for backgrounds */
-  --space-gradient: linear-gradient(
-    135deg,
-    #1a0533 0%,
-    #0d1b2a 50%,
-    #0a1628 100%
-  );
+  --space-gradient: linear-gradient(135deg,
+      #1a0533 0%,
+      #0d1b2a 50%,
+      #0a1628 100%);
 }
 
 * {
@@ -48,52 +52,54 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-size: 2.5rem;
-  text-shadow: 0 4px 20px rgba(255,107,107,0.3);
+  text-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
 }
 
 /* Glow effect for buttons */
 .glow-button {
   box-shadow: 0 0 20px rgba(78, 205, 196, 0.4),
-              0 0 40px rgba(78, 205, 196, 0.2);
+    0 0 40px rgba(78, 205, 196, 0.2);
 }
 
 /* Slide unlock track */
 .slide-track {
-  background: linear-gradient(
-    90deg,
-    rgba(78, 205, 196, 0.2) 0%,
-    rgba(255, 107, 157, 0.2) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(78, 205, 196, 0.2) 0%,
+      rgba(255, 107, 157, 0.2) 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Slide unlock button */
 .slide-button {
-  background: linear-gradient(
-    135deg,
-    #4ECDC4 0%,
-    #45B7D1 50%,
-    #FF6B9D 100%
-  );
+  background: linear-gradient(135deg,
+      #4ECDC4 0%,
+      #45B7D1 50%,
+      #FF6B9D 100%);
   box-shadow: 0 4px 20px rgba(78, 205, 196, 0.5);
 }
 
 /* Animation keyframes */
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(78, 205, 196, 0.4);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(78, 205, 196, 0.6),
-                0 0 60px rgba(255, 107, 157, 0.3);
+      0 0 60px rgba(255, 107, 157, 0.3);
   }
 }
 
 @keyframes slide-hint {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0);
     opacity: 0.7;
   }
+
   50% {
     transform: translateX(10px);
     opacity: 1;

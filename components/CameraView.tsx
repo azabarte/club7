@@ -18,6 +18,15 @@ const filters: { id: FilterType; name: string; css: string }[] = [
   { id: 'vintage', name: '📷', css: 'sepia(50%) contrast(90%) brightness(90%)' },
   { id: 'bw', name: '🖤', css: 'grayscale(100%) contrast(110%)' },
   { id: 'vibrant', name: '🌈', css: 'saturate(180%) contrast(110%) brightness(105%)' },
+  { id: 'vibrant', name: '🌈', css: 'saturate(180%) contrast(110%) brightness(105%)' },
+];
+
+const masks = [
+  { id: 'none', name: '🚫', url: '' },
+  { id: 'glasses', name: '🕶️', url: 'https://cdn-icons-png.flaticon.com/512/178/178346.png' }, // Example Mask URL
+  { id: 'hat', name: '🎩', url: 'https://cdn-icons-png.flaticon.com/512/118/118760.png' },
+  { id: 'cat', name: '🐱', url: 'https://cdn-icons-png.flaticon.com/512/1864/1864514.png' },
+  { id: 'dog', name: '🐶', url: 'https://cdn-icons-png.flaticon.com/512/616/616408.png' },
 ];
 
 const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'post' }) => {
@@ -34,6 +43,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const [caption, setCaption] = useState('');
   const [selectedStickers, setSelectedStickers] = useState<string[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
+  const [activeMask, setActiveMask] = useState<string>('none'); // Added activeMask state
   const [isUploading, setIsUploading] = useState(false);
   const [step, setStep] = useState<'capture' | 'edit'>('capture');
   const [isRecording, setIsRecording] = useState(false);
@@ -47,6 +57,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
 
   const [activeARFilter, setActiveARFilter] = useState<string | null>(null);
   const [showARFilters, setShowARFilters] = useState(false);
+  const [showMasks, setShowMasks] = useState(false); // UI toggle for masks
 
   const stickers = ['🔥', '❤️', '😍', '🤩', '🎉', '✨', '🌈', '🦄', '⭐', '🎭'];
   const MAX_RECORDING_SECONDS = 30; // Max video duration
@@ -134,37 +145,43 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     }
   };
 
-  const handleCapture = () => {
+  const takePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
+    // Explicitly set canvas dimensions to match video videoWidth/videoHeight
+    // This ensures high-res capture instead of CSS size
+    if (video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Apply color filter
-    const filter = filters.find(f => f.id === selectedFilter);
-    if (filter?.css) {
-      ctx.filter = filter.css;
-    }
-
+    // Draw video frame
     // Mirror if front camera
+    ctx.save();
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
 
-    // Draw video frame
-    ctx.drawImage(video, 0, 0);
+    // Apply color filter
+    const currentFilter = filters.find(f => f.id === selectedFilter);
+    if (currentFilter?.css) {
+      ctx.filter = currentFilter.css;
+    }
 
-    // Reset transform and filter for overlay
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore(); // Restore context to avoid affecting subsequent draws
+
+    // Reset filter
     ctx.filter = 'none';
 
-    // Draw face filter overlay if active
+    // Draw face filter overlay if active (FaceMesh)
     if (activeARFilter && faceFiltersRef.current) {
       const filterCanvas = faceFiltersRef.current.getCanvas();
       if (filterCanvas && filterCanvas.width > 0 && filterCanvas.height > 0) {
@@ -173,6 +190,31 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
         // But the filter canvas CSS has scaleX(-1) which doesn't affect the actual pixel data
         // So we just draw it directly
         ctx.drawImage(filterCanvas, 0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // Draw static mask if active (Manual Composition)
+    if (activeMask && activeMask !== 'none') {
+      const mask = masks.find(m => m.id === activeMask);
+      if (mask) {
+        try {
+          // Create a promise to load the image
+          const loadMask = new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = mask.url;
+          });
+
+          const maskImg = await loadMask;
+
+          // Draw mask centered and scaled to fit or fill as needed
+          // Assuming masks are full-frame overlays
+          ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+          console.error("Failed to load mask for capture", e);
+        }
       }
     }
 
@@ -420,6 +462,23 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
               </div>
             )}
 
+            {/* Masks Selector (Manual) */}
+            {showMasks && (
+              <div className="absolute bottom-40 left-0 right-0 px-2 py-2 bg-black/50 backdrop-blur-sm">
+                <div className="flex gap-4 overflow-x-auto no-scrollbar justify-center">
+                  {masks.map(mask => (
+                    <button
+                      key={mask.id}
+                      onClick={() => setActiveMask(mask.id)}
+                      className={`flex flex-col items-center gap-1 min-w-[60px] ${activeMask === mask.id ? 'scale-110' : 'opacity-70'}`}
+                    >
+                      <span className="text-3xl bg-white/20 p-2 rounded-full">{mask.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Color filter selector */}
             <div className="absolute bottom-24 left-0 right-0 px-4">
               <div className="flex justify-center gap-3">
@@ -458,7 +517,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
                 onMouseUp={stopRecording}
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
-                onClick={!isRecording ? handleCapture : undefined}
+                onClick={!isRecording ? takePhoto : undefined}
                 className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${isRecording
                   ? 'border-red-500 bg-red-500/20'
                   : 'border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
@@ -483,7 +542,21 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
                 }`}>
                 <span className="text-2xl">🎭</span>
               </div>
-              <span className="text-[10px] uppercase font-bold text-gray-400">Máscaras</span>
+              <span className="text-[10px] uppercase font-bold text-gray-400">Máscaras AR</span>
+            </button>
+
+            {/* Static Masks toggle */}
+            <button
+              onClick={() => setShowMasks(!showMasks)}
+              className={`flex flex-col items-center gap-1 ${showMasks ? 'text-yellow-400' : 'text-white'}`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${showMasks
+                ? 'bg-yellow-600/30 border-yellow-500'
+                : 'bg-gray-800 border-gray-700'
+                }`}>
+                <span className="text-2xl">🎭</span>
+              </div>
+              <span className="text-[10px] uppercase font-bold text-gray-400">Stickers</span>
             </button>
           </div>
         </>

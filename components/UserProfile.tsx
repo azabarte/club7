@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { ClubMember, Post, uploadMedia } from '../lib/supabase';
-import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Trash2, Upload, Image as ImageIcon, Edit3, Save } from 'lucide-react';
 import CameraView from './CameraView';
 
 interface UserProfileProps {
@@ -67,12 +67,6 @@ const avatarStyles = [
 const getAvatarUrlForStyle = (style: string, seed: string, bg: string) =>
   `https://api.dicebear.com/9.x/${style}/svg?seed=${seed}&backgroundColor=${bg}`;
 
-// Legacy simple function for default avatar options
-const avatarOptions = avatarStyles[0].seeds.slice(0, 12).map((seed, i) => ({
-  seed,
-  bg: avatarStyles[0].bgs[i % avatarStyles[0].bgs.length]
-}));
-
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
   const { currentUser, updateAvatar, addNewMember, members, updateMember, deleteMemberAction } = useStore();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -88,6 +82,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditingStory, setIsEditingStory] = useState(false);
+  const [storyText, setStoryText] = useState(user.story || '');
   const selfieInputRef = useRef<HTMLInputElement>(null);
 
   const userPosts = posts
@@ -124,7 +120,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
   };
 
   const handleCameraCapture = async (file: File) => {
-    // Direct Upload Flow - always use the photo directly
     setIsUpdating(true);
     try {
       const uploadedUrl = await uploadMedia(file, 'avatars');
@@ -144,7 +139,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     }
   };
 
-  // Handle photo upload from file input
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -172,7 +166,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     }
   };
 
-  // Handle selecting an avatar from the catalog
   const handleStyleAvatarSelect = async (style: string, seed: string, bg: string) => {
     setIsUpdating(true);
     const url = getAvatarUrlForStyle(style, seed, bg);
@@ -230,6 +223,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     if (success) {
       setEditingUser(null);
     }
+  };
+
+  const handleSaveStory = async () => {
+    setIsUpdating(true);
+    await updateMember(user.id, { story: storyText });
+    setIsUpdating(false);
+    setIsEditingStory(false);
   };
 
   return (
@@ -325,6 +325,69 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
             </div>
             <div className="text-[10px] text-[#4ECDC4] uppercase font-bold tracking-wide">Puntos</div>
           </div>
+        </div>
+
+        {/* User Story Section */}
+        <div className="w-full mb-8 text-center px-4">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wide">MI HISTORIA</h3>
+            {isCurrentUser && !isEditingStory && (
+              <button
+                onClick={() => {
+                  setStoryText(user.story || '');
+                  setIsEditingStory(true);
+                }}
+                className="text-[#4ECDC4] hover:text-white transition-colors bg-white/5 p-1.5 rounded-full"
+              >
+                <Edit3 size={14} />
+              </button>
+            )}
+          </div>
+
+          {isEditingStory ? (
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 animate-in fade-in zoom-in duration-200">
+              <textarea
+                value={storyText}
+                onChange={(e) => setStoryText(e.target.value)}
+                placeholder="Escribe algo sobre ti..."
+                className="w-full bg-black/20 text-white p-3 rounded-xl border border-white/10 focus:border-[#4ECDC4] outline-none min-h-[100px] font-handwriting text-xl leading-relaxed resize-none"
+                autoFocus
+              />
+              <div className="flex gap-2 mt-3 justify-end">
+                <button
+                  onClick={() => setIsEditingStory(false)}
+                  className="px-4 py-2 rounded-xl text-white/60 hover:bg-white/10 font-bold text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveStory}
+                  disabled={isUpdating}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#4ECDC4] to-[#45B7D1] text-white font-bold text-sm flex items-center gap-2"
+                >
+                  {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Guardar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative min-h-[60px] flex items-center justify-center">
+              {user.story ? (
+                <p className="text-white text-2xl font-handwriting leading-relaxed max-w-md mx-auto drop-shadow-lg text-balance opacity-90">
+                  "{user.story}"
+                </p>
+              ) : (
+                isCurrentUser && (
+                  <button
+                    onClick={() => setIsEditingStory(true)}
+                    className="text-white/30 text-lg font-handwriting hover:text-white/50 transition-colors border-b border-dashed border-white/20 pb-1"
+                  >
+                    Toca para escribir tu historia... ✍️
+                  </button>
+                )
+              )}
+            </div>
+          )}
         </div>
 
         {/* Unlocked stickers preview */}
