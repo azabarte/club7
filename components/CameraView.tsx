@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
-import { RefreshCcw, Zap, X, Image as ImageIcon, Loader2, Check, Video, Camera, Sparkles } from 'lucide-react';
-import { FaceFilters, FilterSelector, FaceFiltersHandle } from './FaceFilters';
+import { RefreshCcw, Zap, X, Image as ImageIcon, Loader2, Sparkles, Camera } from 'lucide-react';
 
 interface CameraViewProps {
   onClose: () => void;
@@ -9,24 +8,23 @@ interface CameraViewProps {
   mode?: 'post' | 'avatar';
 }
 
-type FilterType = 'none' | 'warm' | 'cool' | 'vintage' | 'bw' | 'vibrant';
+type FilterType = 'none' | 'warm' | 'cool' | 'vintage' | 'bw' | 'vibrant' | 'noir' | 'dramatic' | 'glow' | 'polaroid' | 'cyber' | 'ocean' | 'autumn' | 'pastel';
 
 const filters: { id: FilterType; name: string; css: string }[] = [
   { id: 'none', name: '✨', css: '' },
-  { id: 'warm', name: '🌅', css: 'sepia(30%) saturate(140%) brightness(110%)' },
-  { id: 'cool', name: '❄️', css: 'saturate(120%) hue-rotate(15deg) brightness(105%)' },
-  { id: 'vintage', name: '📷', css: 'sepia(50%) contrast(90%) brightness(90%)' },
+  { id: 'warm', name: '🌅', css: 'sepia(20%) saturate(130%) brightness(105%)' },
+  { id: 'cool', name: '❄️', css: 'saturate(110%) hue-rotate(10deg) brightness(105%)' },
+  { id: 'vintage', name: '🎞️', css: 'sepia(40%) contrast(90%) brightness(95%) saturate(80%)' },
   { id: 'bw', name: '🖤', css: 'grayscale(100%) contrast(110%)' },
-  { id: 'vibrant', name: '🌈', css: 'saturate(180%) contrast(110%) brightness(105%)' },
-  { id: 'vibrant', name: '🌈', css: 'saturate(180%) contrast(110%) brightness(105%)' },
-];
-
-const masks = [
-  { id: 'none', name: '🚫', url: '' },
-  { id: 'glasses', name: '🕶️', url: 'https://cdn-icons-png.flaticon.com/512/178/178346.png' }, // Example Mask URL
-  { id: 'hat', name: '🎩', url: 'https://cdn-icons-png.flaticon.com/512/118/118760.png' },
-  { id: 'cat', name: '🐱', url: 'https://cdn-icons-png.flaticon.com/512/1864/1864514.png' },
-  { id: 'dog', name: '🐶', url: 'https://cdn-icons-png.flaticon.com/512/616/616408.png' },
+  { id: 'vibrant', name: '🌈', css: 'saturate(170%) contrast(110%)' },
+  { id: 'noir', name: '🎬', css: 'grayscale(100%) contrast(150%) brightness(80%)' },
+  { id: 'dramatic', name: '🎭', css: 'contrast(140%) brightness(90%) saturate(110%)' },
+  { id: 'glow', name: '🌟', css: 'brightness(120%) saturate(110%) contrast(90%)' },
+  { id: 'polaroid', name: '📸', css: 'sepia(20%) contrast(110%) brightness(110%) saturate(120%)' },
+  { id: 'cyber', name: '👾', css: 'hue-rotate(280deg) saturate(150%) contrast(110%)' },
+  { id: 'ocean', name: '🌊', css: 'hue-rotate(180deg) saturate(120%) brightness(105%)' },
+  { id: 'autumn', name: '🍂', css: 'sepia(30%) hue-rotate(-15deg) saturate(140%)' },
+  { id: 'pastel', name: '🍭', css: 'saturate(70%) brightness(110%) contrast(90%)' },
 ];
 
 const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'post' }) => {
@@ -41,9 +39,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [selectedStickers, setSelectedStickers] = useState<string[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
-  const [activeMask, setActiveMask] = useState<string>('none'); // Added activeMask state
   const [isUploading, setIsUploading] = useState(false);
   const [step, setStep] = useState<'capture' | 'edit'>('capture');
   const [isRecording, setIsRecording] = useState(false);
@@ -53,18 +49,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const maxRecordingTimeRef = useRef<NodeJS.Timeout | null>(null);
-  const faceFiltersRef = useRef<FaceFiltersHandle>(null);
 
-  const [activeARFilter, setActiveARFilter] = useState<string | null>(null);
-  const [showARFilters, setShowARFilters] = useState(false);
-  const [showMasks, setShowMasks] = useState(false); // UI toggle for masks
+  const MAX_RECORDING_SECONDS = 30;
 
-  const stickers = ['🔥', '❤️', '😍', '🤩', '🎉', '✨', '🌈', '🦄', '⭐', '🎭'];
-  const MAX_RECORDING_SECONDS = 30; // Max video duration
-
-  // Initialize camera
   useEffect(() => {
-    // For avatar mode, default to front facing camera and simpler setup
     if (mode === 'avatar') {
       setFacingMode('user');
     }
@@ -77,15 +65,13 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const startCamera = async () => {
     try {
       setCameraError(null);
-
-      // Check if getUserMedia is available (requires HTTPS)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setCameraError('Tu navegador no soporta la cámara. Asegúrate de estar usando HTTPS.');
         return;
       }
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } }, // Reduced resolution for smaller files
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true
       });
       setStream(mediaStream);
@@ -94,20 +80,10 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
       }
     } catch (error: any) {
       console.error('Error accessing camera:', error);
-
-      // Provide specific error messages based on the error type
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        setCameraError('Permiso de cámara denegado. Ve a la configuración de tu navegador y permite el acceso a la cámara.');
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        setCameraError('No se encontró ninguna cámara en tu dispositivo.');
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        setCameraError('La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo.');
-      } else if (error.name === 'OverconstrainedError') {
-        setCameraError('La cámara no soporta la configuración solicitada.');
-      } else if (error.name === 'TypeError') {
-        setCameraError('Error de configuración. Asegúrate de estar usando HTTPS.');
+        setCameraError('Permiso de cámara denegado. Permite el acceso para tomar fotos.');
       } else {
-        setCameraError('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+        setCameraError('No se pudo acceder a la cámara. Revisa tu configuración.');
       }
     }
   };
@@ -125,7 +101,6 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
 
   const toggleFlash = () => {
     setFlashOn(!flashOn);
-    // Note: Flash control requires specific track capabilities
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack.getCapabilities && 'torch' in (videoTrack.getCapabilities() as any)) {
@@ -151,8 +126,6 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    // Explicitly set canvas dimensions to match video videoWidth/videoHeight
-    // This ensures high-res capture instead of CSS size
     if (video.videoWidth) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -161,64 +134,20 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Draw video frame
-    // Mirror if front camera
     ctx.save();
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
 
-    // Apply color filter
     const currentFilter = filters.find(f => f.id === selectedFilter);
     if (currentFilter?.css) {
       ctx.filter = currentFilter.css;
     }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    ctx.restore(); // Restore context to avoid affecting subsequent draws
+    ctx.restore();
 
-    // Reset filter
-    ctx.filter = 'none';
-
-    // Draw face filter overlay if active (FaceMesh)
-    if (activeARFilter && faceFiltersRef.current) {
-      const filterCanvas = faceFiltersRef.current.getCanvas();
-      if (filterCanvas && filterCanvas.width > 0 && filterCanvas.height > 0) {
-        // The filter canvas has scaleX(-1) applied via CSS, so we need to flip it back for drawing
-        // Actually, we draw it as-is since both video and filter canvas share the same coordinate space
-        // But the filter canvas CSS has scaleX(-1) which doesn't affect the actual pixel data
-        // So we just draw it directly
-        ctx.drawImage(filterCanvas, 0, 0, canvas.width, canvas.height);
-      }
-    }
-
-    // Draw static mask if active (Manual Composition)
-    if (activeMask && activeMask !== 'none') {
-      const mask = masks.find(m => m.id === activeMask);
-      if (mask) {
-        try {
-          // Create a promise to load the image
-          const loadMask = new Promise<HTMLImageElement>((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = mask.url;
-          });
-
-          const maskImg = await loadMask;
-
-          // Draw mask centered and scaled to fit or fill as needed
-          // Assuming masks are full-frame overlays
-          ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-        } catch (e) {
-          console.error("Failed to load mask for capture", e);
-        }
-      }
-    }
-
-    // Convert to blob
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -227,22 +156,13 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
         setStep('edit');
         stopCamera();
       }
-    }, 'image/jpeg', 0.9);
+    }, 'image/jpeg', 0.95);
   };
 
   const startRecording = () => {
     if (!stream) return;
-
     chunksRef.current = [];
-
-    // Detect supported mimeType for better browser compatibility
-    const mimeTypes = [
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm',
-      'video/mp4'
-    ];
-
+    const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
     let selectedMimeType = '';
     for (const mimeType of mimeTypes) {
       if (MediaRecorder.isTypeSupported(mimeType)) {
@@ -251,99 +171,50 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
       }
     }
 
-    if (!selectedMimeType) {
-      console.error('No supported video mimeType found');
-      alert('Tu navegador no soporta grabación de video. Prueba con Chrome o Firefox.');
-      return;
-    }
-
-    // Build options with fallback - some browsers don't support bitrate options
-    let mediaRecorder: MediaRecorder;
     try {
-      const options: MediaRecorderOptions = {
-        mimeType: selectedMimeType,
-        videoBitsPerSecond: 500000,
-        audioBitsPerSecond: 64000
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType });
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
       };
-      mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'video/webm' });
+        const extension = selectedMimeType.includes('mp4') ? 'mp4' : 'webm';
+        const file = new File([blob], `video_${Date.now()}.${extension}`, { type: selectedMimeType || 'video/webm' });
+        setSelectedFile(file);
+        setPreview(URL.createObjectURL(blob));
+        setStep('edit');
+        stopCamera();
+      };
+      mediaRecorder.start(1000);
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+      maxRecordingTimeRef.current = setTimeout(() => stopRecording(), MAX_RECORDING_SECONDS * 1000);
     } catch (e) {
-      // Fallback without bitrate options
-      try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType: selectedMimeType });
-      } catch (e2) {
-        // Last resort: no options at all
-        mediaRecorder = new MediaRecorder(stream);
-      }
+      console.error('Recording error:', e);
     }
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
-
-    mediaRecorder.onstop = () => {
-      const mimeType = selectedMimeType || 'video/webm';
-      const blob = new Blob(chunksRef.current, { type: mimeType });
-      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([blob], `video_${Date.now()}.${extension}`, { type: mimeType });
-      setSelectedFile(file);
-      setPreview(URL.createObjectURL(blob));
-      setStep('edit');
-      stopCamera();
-
-      // Clear max time timeout
-      if (maxRecordingTimeRef.current) {
-        clearTimeout(maxRecordingTimeRef.current);
-      }
-    };
-
-    mediaRecorder.start(1000); // Request data every second for better reliability
-    mediaRecorderRef.current = mediaRecorder;
-    setIsRecording(true);
-    setRecordingTime(0);
-
-    // Count up timer
-    recordingIntervalRef.current = setInterval(() => {
-      setRecordingTime(prev => prev + 1);
-    }, 1000);
-
-    // Auto-stop after max duration
-    maxRecordingTimeRef.current = setTimeout(() => {
-      stopRecording();
-    }, MAX_RECORDING_SECONDS * 1000);
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      if (maxRecordingTimeRef.current) {
-        clearTimeout(maxRecordingTimeRef.current);
-      }
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+      if (maxRecordingTimeRef.current) clearTimeout(maxRecordingTimeRef.current);
     }
-  };
-
-  const toggleSticker = (sticker: string) => {
-    setSelectedStickers(prev =>
-      prev.includes(sticker) ? prev.filter(s => s !== sticker) : [...prev, sticker]
-    );
   };
 
   const handlePublish = async () => {
     if (!preview) return;
-
     setIsUploading(true);
-
     let success = false;
     if (selectedFile) {
       const type = selectedFile.type.startsWith('video') ? 'video' : 'image';
-      success = await addNewPost(type, selectedFile, caption, selectedStickers);
+      success = await addNewPost(type, selectedFile, caption, []);
     } else {
-      success = await addNewPostFromUrl('image', preview, caption, selectedStickers);
+      success = await addNewPostFromUrl('image', preview, caption, []);
     }
-
     setIsUploading(false);
     if (success) onClose();
   };
@@ -354,7 +225,6 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
       setPreview(null);
       setSelectedFile(null);
       setCaption('');
-      setSelectedStickers([]);
       setSelectedFilter('none');
       startCamera();
     } else {
@@ -373,322 +243,164 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*,video/*"
-        capture="environment"
-        onChange={handleFileSelect}
-      />
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileSelect} />
       <canvas ref={canvasRef} className="hidden" />
 
-      {step === 'capture' ? (
-        <>
-          {/* Camera View */}
-          <div className="relative flex-1 bg-gray-900 rounded-b-3xl overflow-hidden">
+      <div className="relative flex-1 bg-gray-900 rounded-b-3xl overflow-hidden shadow-2xl">
+        {step === 'capture' ? (
+          <>
             {cameraError ? (
-              <div className="absolute inset-0 flex items-center justify-center text-white text-center p-6">
+              <div className="absolute inset-0 flex items-center justify-center text-white text-center p-6 bg-gray-900/80 backdrop-blur-sm">
                 <div>
-                  <p className="text-lg mb-4">{cameraError}</p>
-                  <button
-                    onClick={startCamera}
-                    className="bg-indigo-600 px-6 py-3 rounded-full font-bold"
-                  >
-                    Reintentar
-                  </button>
+                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <X className="text-red-500" size={32} />
+                  </div>
+                  <p className="text-lg font-bold mb-4">{cameraError}</p>
+                  <button onClick={startCamera} className="bg-indigo-600 px-8 py-3 rounded-full font-black shadow-lg shadow-indigo-500/30 uppercase tracking-widest text-sm">Reintentar</button>
                 </div>
               </div>
             ) : (
-              <>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{
-                    transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                    filter: currentFilter?.css || 'none'
-                  }}
-                />
-                {/* AR Face Filters Overlay */}
-                <div
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
-                >
-                  <FaceFilters
-                    ref={faceFiltersRef}
-                    videoRef={videoRef}
-                    activeFilter={activeARFilter}
-                  />
-                </div>
-              </>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{
+                  transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                  filter: currentFilter?.css || 'none'
+                }}
+              />
             )}
 
-            {/* Recording indicator */}
             {isRecording && (
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-600 px-4 py-2 rounded-full flex items-center gap-2">
-                <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
-                <span className="text-white font-bold">{formatTime(recordingTime)}</span>
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur-md px-5 py-2 rounded-full flex items-center gap-3 border border-red-400 shadow-lg animate-pulse">
+                <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                <span className="text-white font-black text-sm tracking-tighter">{formatTime(recordingTime)}</span>
               </div>
             )}
 
-            {/* Top controls */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start pt-12">
-              <button onClick={handleBack} className="bg-black/40 backdrop-blur-md p-3 rounded-full text-white">
-                <X />
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start pt-12 z-20">
+              <button onClick={handleBack} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
+                <X size={24} />
               </button>
               <div className="flex gap-3">
-                <button
-                  onClick={toggleFlash}
-                  className={`bg-black/40 backdrop-blur-md p-3 rounded-full ${flashOn ? 'text-yellow-400' : 'text-white'}`}
-                >
-                  <Zap size={20} />
+                <button onClick={toggleFlash} className={`bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/10 transition-all ${flashOn ? 'text-yellow-400' : 'text-white'}`}>
+                  <Zap size={22} />
                 </button>
-                <button onClick={toggleCamera} className="bg-black/40 backdrop-blur-md p-3 rounded-full text-white">
-                  <RefreshCcw size={20} />
+                <button onClick={toggleCamera} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
+                  <RefreshCcw size={22} />
                 </button>
               </div>
             </div>
 
-            {/* AR Filter selector */}
-            {showARFilters && (
-              <div className="absolute bottom-40 left-0 right-0 px-2">
-                <FilterSelector
-                  activeFilter={activeARFilter}
-                  onSelectFilter={setActiveARFilter}
-                />
-              </div>
-            )}
-
-            {/* Masks Selector (Manual) */}
-            {showMasks && (
-              <div className="absolute bottom-40 left-0 right-0 px-2 py-2 bg-black/50 backdrop-blur-sm">
-                <div className="flex gap-4 overflow-x-auto no-scrollbar justify-center">
-                  {masks.map(mask => (
-                    <button
-                      key={mask.id}
-                      onClick={() => setActiveMask(mask.id)}
-                      className={`flex flex-col items-center gap-1 min-w-[60px] ${activeMask === mask.id ? 'scale-110' : 'opacity-70'}`}
-                    >
-                      <span className="text-3xl bg-white/20 p-2 rounded-full">{mask.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Color filter selector */}
-            <div className="absolute bottom-24 left-0 right-0 px-4">
-              <div className="flex justify-center gap-3">
+            <div className="absolute bottom-6 left-0 right-0 px-4 z-20">
+              <div className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar pb-2">
                 {filters.map(filter => (
                   <button
                     key={filter.id}
                     onClick={() => setSelectedFilter(filter.id)}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all ${selectedFilter === filter.id
-                      ? 'bg-white/30 scale-110 ring-2 ring-white'
-                      : 'bg-black/30'
+                    className={`min-w-[56px] h-14 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${selectedFilter === filter.id
+                      ? 'bg-white text-black border-white scale-110 shadow-xl'
+                      : 'bg-black/40 text-white border-white/20'
                       }`}
                   >
-                    {filter.name}
+                    <span className="text-xl">{filter.name}</span>
+                    <span className="text-[8px] font-black uppercase tracking-tight opacity-50">{filter.id}</span>
                   </button>
                 ))}
               </div>
             </div>
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+            {preview && (
+              selectedFile?.type.startsWith('video') ? (
+                <video src={preview} controls className="w-full h-full object-contain" />
+              ) : (
+                <img src={preview} alt="Preview" className="w-full h-full object-contain" style={{ filter: currentFilter?.css || 'none' }} />
+              )
+            )}
+            <div className="absolute top-12 left-6 z-20">
+              <button onClick={handleBack} className="bg-black/60 backdrop-blur-md p-3 rounded-full text-white border border-white/10 shadow-xl">
+                <X size={24} />
+              </button>
+            </div>
           </div>
+        )}
+      </div>
 
-          {/* Capture controls */}
-          <div className="h-32 bg-black flex items-center justify-between px-8 pb-4">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="text-white flex flex-col items-center gap-1"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center border border-gray-700">
-                <ImageIcon size={22} className="text-white/80" />
+      <div className="bg-black h-40 flex items-center justify-between px-10 relative">
+        {step === 'capture' ? (
+          <>
+            <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 group">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-active:scale-95 transition-all">
+                <ImageIcon size={22} className="text-white/60" />
               </div>
-              <span className="text-[10px] uppercase font-bold text-gray-400">Galería</span>
+              <span className="text-[10px] uppercase font-black tracking-widest text-white/40">Galería</span>
             </button>
 
-            {/* Main capture button */}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 -mt-4">
               <button
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
                 onClick={!isRecording ? takePhoto : undefined}
-                className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all ${isRecording
-                  ? 'border-red-500 bg-red-500/20'
-                  : 'border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-                  }`}
+                className={`w-24 h-24 rounded-full border-4 flex items-center justify-center transition-all ${isRecording ? 'border-red-500 p-2' : 'border-white p-1 shadow-2xl'}`}
               >
-                <div className={`rounded-full transition-all ${isRecording ? 'w-8 h-8 bg-red-500 rounded-lg' : 'w-16 h-16 bg-white'
-                  }`} />
+                <div className={`transition-all ${isRecording ? 'w-full h-full bg-red-500 rounded-2xl' : 'w-full h-full bg-white rounded-full'}`} />
               </button>
-              <span className="text-[10px] text-gray-400">
-                {isRecording ? 'Suelta para parar' : 'Toca = Foto, Mantén = Video'}
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/50 animate-pulse">
+                {isRecording ? 'Grabando...' : 'TOCA / MANTÉN'}
               </span>
             </div>
 
-            {/* AR Filters toggle */}
-            <button
-              onClick={() => setShowARFilters(!showARFilters)}
-              className={`flex flex-col items-center gap-1 ${showARFilters ? 'text-purple-400' : 'text-white'}`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${showARFilters
-                ? 'bg-purple-600/30 border-purple-500'
-                : 'bg-gray-800 border-gray-700'
-                }`}>
-                <span className="text-2xl">🎭</span>
+            <div className="flex flex-col items-center gap-1 opacity-20 pointer-events-none">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                <Sparkles size={22} className="text-white/60" />
               </div>
-              <span className="text-[10px] uppercase font-bold text-gray-400">Máscaras AR</span>
-            </button>
-
-            {/* Static Masks toggle */}
-            <button
-              onClick={() => setShowMasks(!showMasks)}
-              className={`flex flex-col items-center gap-1 ${showMasks ? 'text-yellow-400' : 'text-white'}`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${showMasks
-                ? 'bg-yellow-600/30 border-yellow-500'
-                : 'bg-gray-800 border-gray-700'
-                }`}>
-                <span className="text-2xl">🎭</span>
-              </div>
-              <span className="text-[10px] uppercase font-bold text-gray-400">Stickers</span>
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Edit step */}
-          <div className="relative flex-1 bg-gray-900 overflow-hidden">
-            {preview && (
-              selectedFile?.type.startsWith('video') ? (
-                <video src={preview} controls className="w-full h-full object-contain" />
-              ) : (
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-full h-full object-contain"
-                  style={{ filter: currentFilter?.css || 'none' }}
-                />
-              )
-            )}
-
-            {/* Stickers overlay */}
-            {selectedStickers.length > 0 && (
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                {selectedStickers.map((s, i) => (
-                  <span
-                    key={i}
-                    className="text-5xl drop-shadow-lg animate-bounce"
-                    style={{ animationDelay: `${i * 0.1}s` }}
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="absolute top-0 left-0 right-0 p-6 pt-12">
-              <button onClick={handleBack} className="bg-black/40 backdrop-blur-md p-3 rounded-full text-white">
-                <X />
-              </button>
+              <span className="text-[10px] uppercase font-black tracking-widest text-white/40">Efectos</span>
             </div>
-          </div>
-
-          {/* Edit controls */}
-          <div className="bg-black p-6 space-y-4">
+          </>
+        ) : (
+          <div className="w-full flex flex-col gap-4">
             {mode === 'post' ? (
-              <>
+              <div className="w-full space-y-4">
                 <input
                   type="text"
-                  placeholder="Añade un pie de foto..."
+                  placeholder="Escribe algo sobre este momento..."
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  className="w-full bg-gray-800 text-white rounded-2xl px-4 py-3 placeholder-gray-500 border border-gray-700 focus:border-[#4ECDC4] outline-none"
+                  className="w-full bg-white/10 text-white rounded-2xl px-6 py-4 placeholder-white/30 border border-white/10 focus:border-indigo-500 outline-none transition-all text-lg font-medium"
                 />
-
-                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                  {stickers.map(sticker => (
-                    <button
-                      key={sticker}
-                      onClick={() => toggleSticker(sticker)}
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all ${selectedStickers.includes(sticker)
-                        ? 'bg-gradient-to-br from-[#4ECDC4] to-[#FF6B9D] scale-110'
-                        : 'bg-gray-800 hover:bg-gray-700'
-                        }`}
-                    >
-                      {sticker}
-                    </button>
-                  ))}
-                </div>
-
                 <button
                   onClick={handlePublish}
                   disabled={isUploading}
-                  className="w-full bg-gradient-to-r from-[#4ECDC4] to-[#FF6B9D] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform disabled:opacity-70"
+                  className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest"
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={20} className="animate-spin" />
-                      Publicando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={20} />
-                      Publicar
-                    </>
-                  )}
+                  {isUploading ? <><Loader2 size={24} className="animate-spin" /> Subiendo...</> : <><Sparkles size={22} /> Publicar Moment</>}
                 </button>
-              </>
+              </div>
             ) : (
-              /* Avatar Mode Controls */
-              <div className="space-y-4">
-                <p className="text-white text-center font-medium">¿Te gusta esta foto?</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      if (selectedFile && onCapture) {
-                        onCapture(selectedFile);
-                        onClose();
-                      }
-                    }}
-                    className="bg-white/10 text-white py-3 rounded-xl font-bold border border-white/20 hover:bg-white/20"
-                  >
-                    Usar Foto
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (selectedFile && onCapture) {
-                        // We'll handle the "AI Generation" logic in the parent component
-                        // by modifying the file or passing a flag, but simpler to just 
-                        // return the file triggers the same flow, 
-                        // or we can repurpose onCapture to just return file
-                        // and let parent decide.
-                        // But wait, parent needs to know intent. 
-                        // For now, let's just assume the parent offers the generic choice AFTER capture
-                        // OR we add specific intent buttons here. 
-                        // Let's just return the file.
-                        onCapture(selectedFile);
-                        onClose();
-                      }
-                    }}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold"
-                  >
-                    Usar para AI ✨
-                  </button>
-                </div>
-                <p className="text-white/40 text-xs text-center">
-                  Al confirmar, podrás elegir si usar la foto directa o crear un avatar con IA.
-                </p>
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <button
+                  onClick={() => { if (selectedFile && onCapture) { onCapture(selectedFile, 'use'); onClose(); } }}
+                  className="bg-white/10 text-white py-4 rounded-2xl font-black border border-white/10 active:scale-95 transition-all uppercase tracking-widest text-sm"
+                >
+                  Usar Directa
+                </button>
+                <button
+                  onClick={() => { if (selectedFile && onCapture) { onCapture(selectedFile, 'ai'); onClose(); } }}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all uppercase tracking-widest text-sm"
+                >
+                  Mejorar con IA ✨
+                </button>
               </div>
             )}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 };
