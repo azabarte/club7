@@ -81,7 +81,7 @@ interface StoreState {
     addNewMember: (name: string) => Promise<ClubMember | null>;
     updateMember: (id: string, updates: Partial<ClubMember>) => Promise<boolean>;
     deleteMemberAction: (id: string) => Promise<boolean>;
-    addEventAction: (event: Omit<Event, 'id' | 'created_at'>) => Promise<boolean>;
+    addEventAction: (event: Omit<Event, 'id' | 'created_at'>, shouldCreatePost?: boolean) => Promise<boolean>;
     deleteEventAction: (id: string) => Promise<boolean>;
 }
 
@@ -533,10 +533,30 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return success;
     };
 
-    const addEventAction = async (event: Omit<Event, 'id' | 'created_at'>): Promise<boolean> => {
+    const addEventAction = async (event: Omit<Event, 'id' | 'created_at'>, shouldCreatePost?: boolean): Promise<boolean> => {
         const newEvent = await createEvent(event);
         if (newEvent) {
             setEvents(prev => [...prev, newEvent].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()));
+
+            // Auto-create post if requested
+            if (shouldCreatePost && currentUser) {
+                try {
+                    const encodedTitle = encodeURIComponent(event.title);
+                    // Using a dynamic image generator service for the event banner
+                    const imageUrl = `https://placehold.co/600x400/indigo/white/png?text=${encodedTitle}&font=montserrat`;
+
+                    const caption = `📅 ¡Nuevo evento en la agenda!\n\n${event.emoji} **${event.title}**\n🗓️ ${event.event_date} ${event.event_time ? '⏰ ' + event.event_time : ''}\n${event.location ? '📍 ' + event.location : ''}\n\n${event.description || ''}`;
+
+                    const post = await createPost(currentUser.id, 'image', imageUrl, caption);
+                    if (post) {
+                        setPosts(prev => [post, ...prev]);
+                    }
+                } catch (err) {
+                    console.error('Error creating auto-post for event:', err);
+                    // Don't fail the event creation if post fails
+                }
+            }
+
             return true;
         }
         return false;

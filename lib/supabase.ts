@@ -85,6 +85,8 @@ export interface Event {
   title: string;
   description: string | null;
   event_date: string;
+  event_time?: string;
+  location?: string;
   event_type: 'birthday' | 'exam' | 'party' | 'special' | 'general';
   emoji: string;
   created_at: string;
