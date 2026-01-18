@@ -127,7 +127,10 @@ export const FaceFilters = forwardRef<FaceFiltersHandle, FaceFiltersProps>(({ vi
         const filter = FILTERS[activeFilter as keyof typeof FILTERS];
         if (!filter) return;
 
-        if (useStaticMode) {
+        // Use static mode if: 1) explicitly in static mode, OR 2) models haven't loaded yet
+        const shouldUseStaticMode = useStaticMode || !modelsLoaded;
+
+        if (shouldUseStaticMode) {
             // RENDER STATIC OVERLAY (FALLBACK)
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
@@ -301,9 +304,10 @@ export const FaceFilters = forwardRef<FaceFiltersHandle, FaceFiltersProps>(({ vi
         animationRef.current = requestAnimationFrame(detectAndRender);
     }, [videoRef, activeFilter, modelsLoaded, useStaticMode]);
 
-    // Start/stop detection loop
+    // Start/stop detection loop - starts immediately when filter is selected
     useEffect(() => {
-        if (modelsLoaded && activeFilter) {
+        if (activeFilter) {
+            // Start rendering immediately (will use static mode until models load)
             setIsDetecting(true);
             animationRef.current = requestAnimationFrame(detectAndRender);
         } else {
@@ -324,7 +328,7 @@ export const FaceFilters = forwardRef<FaceFiltersHandle, FaceFiltersProps>(({ vi
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [modelsLoaded, activeFilter, detectAndRender]);
+    }, [activeFilter, detectAndRender]);
 
     return (
         <canvas

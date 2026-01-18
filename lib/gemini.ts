@@ -45,38 +45,43 @@ export async function generateAvatarFromSelfie(selfieFile: File): Promise<string
 
     if (!client) {
         console.warn('Gemini API key not configured, using random avatar');
+        console.warn('Please set VITE_GEMINI_API_KEY environment variable');
         // Even without API key, return a valid avatar
         return generateDiceBearUrl(defaultFeatures);
     }
 
+    console.log('[AI Avatar] Starting selfie analysis...');
+    console.log('[AI Avatar] File type:', selfieFile.type, 'Size:', selfieFile.size);
+
     try {
         const base64 = await fileToBase64(selfieFile);
+        console.log('[AI Avatar] Base64 encoding complete, length:', base64.length);
 
-        // Use Gemini to analyze the selfie and get structured features
+        // Use stable Gemini model (1.5-flash is widely available)
         const response = await client.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-1.5-flash',
             contents: [
                 {
                     role: 'user',
                     parts: [
                         {
                             inlineData: {
-                                mimeType: selfieFile.type,
+                                mimeType: selfieFile.type || 'image/jpeg',
                                 data: base64
                             }
                         },
                         {
-                            text: `Analyze this selfie and extract features for creating a cartoon avatar. 
-                            
-Respond ONLY with a JSON object in this exact format (no other text):
-{
-    "hairColor": "hex color like #2c1810 or #f5d142",
-    "skinColor": "hex color for skin tone like #f0c8a0 or #8d5524",
-    "backgroundColor": "hex color that would complement the person like #a78bfa or #f472b6",
-    "hasGlasses": true or false,
-    "hairStyle": "short" or "long" or "curly" or "bald",
-    "gender": "male" or "female"
-}`
+                            text: `You are analyzing a selfie photo to create a cartoon avatar.
+
+Look at the person in this photo and extract these features:
+- Hair color (as a hex color code like #2c1810 for dark brown, #f5d142 for blonde)
+- Skin tone (as a hex color like #f0c8a0 for light, #8d5524 for darker)
+- A nice background color that would complement them (hex color)
+- Whether they wear glasses (true/false)
+- Hair style: "short", "long", "curly", or "bald"
+
+IMPORTANT: Respond with ONLY a JSON object, no other text:
+{"hairColor":"#hexcode","skinColor":"#hexcode","backgroundColor":"#hexcode","hasGlasses":false,"hairStyle":"short"}`
                         }
                     ]
                 }
@@ -84,17 +89,24 @@ Respond ONLY with a JSON object in this exact format (no other text):
         });
 
         const responseText = response.text || '';
-        console.log('Gemini response:', responseText);
+        console.log('[AI Avatar] Gemini raw response:', responseText);
 
         // Parse the JSON from the response
         try {
             // Try to extract JSON from the response (handle markdown code blocks)
-            let jsonStr = responseText;
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            let jsonStr = responseText.trim();
+            // Remove markdown code block if present
+            if (jsonStr.startsWith('```')) {
+                jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '');
+            }
+            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 jsonStr = jsonMatch[0];
             }
+            console.log('[AI Avatar] Extracted JSON:', jsonStr);
+
             const parsed = JSON.parse(jsonStr);
+            console.log('[AI Avatar] Parsed features:', parsed);
 
             features = {
                 hairColor: parsed.hairColor || defaultFeatures.hairColor,
@@ -102,22 +114,25 @@ Respond ONLY with a JSON object in this exact format (no other text):
                 backgroundColor: parsed.backgroundColor || defaultFeatures.backgroundColor,
                 accessories: parsed.hasGlasses ? ['glasses'] : [],
                 hairStyle: parsed.hairStyle || defaultFeatures.hairStyle,
-                seed: `user_${Date.now()}`
+                seed: `ai_${Date.now()}`
             };
+            console.log('[AI Avatar] SUCCESS: Using analyzed features');
         } catch (parseError) {
-            console.error('Error parsing Gemini response, using defaults:', parseError);
+            console.error('[AI Avatar] JSON parse error:', parseError);
+            console.error('[AI Avatar] Response was:', responseText);
             features = defaultFeatures;
         }
 
-    } catch (error) {
-        console.error('Error using Gemini API, falling back to basic generation:', error);
+    } catch (error: any) {
+        console.error('[AI Avatar] Gemini API call failed:', error?.message || error);
+        console.error('[AI Avatar] Full error:', error);
         // If Gemini fails, we STILL return an avatar, just not personalized
         features = defaultFeatures;
     }
 
     // Generate DiceBear avatar URL with the extracted (or default) features
     const avatarUrl = generateDiceBearUrl(features);
-    console.log('Generated DiceBear avatar URL:', avatarUrl);
+    console.log('[AI Avatar] Final avatar URL:', avatarUrl);
 
     return avatarUrl;
 }
