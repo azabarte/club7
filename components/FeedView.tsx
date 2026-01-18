@@ -34,6 +34,17 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   };
 
   const handleReaction = async (postId: string, emoji: string) => {
+    // Check if user has reached 3 reactions on this post
+    const reactions = postReactions[postId] || [];
+    const userReactions = reactions.filter(r => r.user_id === currentUser?.id);
+    const hasThisEmoji = userReactions.some(r => r.emoji === emoji);
+
+    // If user already has 3 reactions and this isn't removing one, block it
+    if (userReactions.length >= 3 && !hasThisEmoji) {
+      alert('¡Máximo 3 reacciones por publicación! Quita una para añadir otra.');
+      return;
+    }
+
     await toggleReaction(postId, emoji);
     setEmojiPickerOpenFor(null);
   };
@@ -76,26 +87,29 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     return () => observer.disconnect();
   }, [posts]);
 
-  // More fun emojis organized by category
-  const quickEmojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '💀', '🙌'];
+  // Level-based emoji unlocks
+  const userLevel = currentUser?.level || 1;
 
-  const allEmojis = [
-    // Love & Hearts
-    '❤️', '💕', '💖', '💗', '💜', '💙', '🧡', '💚',
-    // Fire & Energy
-    '🔥', '⚡', '✨', '💥', '🌟', '⭐', '🎆', '🎇',
-    // Faces
-    '😍', '🥰', '😘', '🤗', '😂', '🤣', '😭', '🥹',
-    '🤩', '😎', '🥳', '🤯', '😱', '🙃', '😏', '🤪',
-    // Reactions
-    '👏', '🙌', '💪', '🤝', '👍', '👎', '🤟', '✌️',
-    // Objects
-    '💀', '👀', '💯', '🎯', '🏆', '🎨', '🎵', '📸',
-    // Animals
-    '🦋', '🐱', '🐶', '🦄', '🐻', '🐼', '🦊', '🐸',
-    // Food
-    '🍕', '🌮', '🍔', '🍩', '🍦', '🎂', '🍿', '☕',
-  ];
+  // Base emojis available to everyone (Level 1-2)
+  const baseEmojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '💀', '🙌'];
+
+  // Level 3-4: More emojis
+  const level3Emojis = ['💕', '💖', '💗', '💜', '💙', '🧡', '💚', '⚡', '✨', '💥', '🌟', '⭐', '🎆', '🎇'];
+
+  // Level 5-6: Extended set
+  const level5Emojis = ['🥰', '😘', '🤗', '🤣', '😭', '🥹', '😎', '🥳', '🤯', '😱', '🙃', '😏', '🤪', '💪', '🤝', '👍'];
+
+  // Level 7+: Premium emojis
+  const level7Emojis = ['🦋', '🐱', '🐶', '🦄', '🐻', '🐼', '🦊', '🐸', '🍕', '🌮', '🍔', '🍩', '🍦', '🎂', '🍿', '☕', '👎', '🤟', '✌️', '👀', '💯', '🎯', '🏆', '🎨', '🎵', '📸'];
+
+  // Build available emojis based on level
+  let availableEmojis = [...baseEmojis];
+  if (userLevel >= 3) availableEmojis = [...availableEmojis, ...level3Emojis];
+  if (userLevel >= 5) availableEmojis = [...availableEmojis, ...level5Emojis];
+  if (userLevel >= 7) availableEmojis = [...availableEmojis, ...level7Emojis];
+
+  // Quick emojis are always the base ones
+  const quickEmojis = baseEmojis;
 
   if (isLoading) {
     return (
@@ -274,7 +288,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
               {emojiPickerOpenFor === post.id && (
                 <div className="bg-gray-50 rounded-2xl p-3 mb-3 border border-gray-100">
                   <div className="flex flex-wrap gap-1">
-                    {allEmojis.map((emoji, i) => (
+                    {availableEmojis.map((emoji, i) => (
                       <button
                         key={i}
                         onClick={() => handleReaction(post.id, emoji)}
@@ -371,7 +385,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                           />
                           <div className="flex-1 bg-gray-50 rounded-2xl px-3 py-2">
                             <span className="font-bold text-gray-800 text-sm">{commentAuthor?.name || 'Usuario'}</span>
-                            <p className="text-gray-700 text-sm">{comment.content}</p>
+                            <p className="text-black text-sm">{comment.content}</p>
                             <span className="text-xs text-gray-400">{formatTimeAgo(comment.created_at)}</span>
                           </div>
                         </div>
@@ -392,7 +406,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                           value={commentText[post.id] || ''}
                           onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                          className="flex-1 bg-transparent outline-none text-sm placeholder-gray-400"
+                          className="flex-1 bg-transparent outline-none text-sm text-black placeholder-gray-400"
                         />
                         <button
                           onClick={() => handleAddComment(post.id)}

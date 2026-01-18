@@ -59,7 +59,7 @@ interface StoreState {
     addNewPost: (type: 'image' | 'video', file: File, caption: string, stickers?: string[]) => Promise<boolean>;
     addNewPostFromUrl: (type: 'image' | 'video', url: string, caption: string, stickers?: string[]) => Promise<boolean>;
     sendNewMessage: (type: 'text' | 'image' | 'audio' | 'sticker', content?: string, file?: File) => Promise<boolean>;
-    completeMissionAction: (missionId: string) => Promise<boolean>;
+    completeMissionAction: (missionId: string, targetUserId?: string) => Promise<boolean>;
     toggleReaction: (postId: string, emoji: string) => Promise<void>;
     addCommentAction: (postId: string, content: string) => Promise<boolean>;
     getMemberById: (id: string) => ClubMember | undefined;
@@ -257,6 +257,15 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     ): Promise<boolean> => {
         if (!currentUser) return false;
 
+        // Check video limit (max 3 videos per user)
+        if (type === 'video') {
+            const userVideos = posts.filter(p => p.user_id === currentUser.id && p.type === 'video');
+            if (userVideos.length >= 3) {
+                alert('¡Máximo 3 videos! Elimina uno de tus videos existentes para subir otro.');
+                return false;
+            }
+        }
+
         const url = await uploadMedia(file, 'posts');
         if (!url) return false;
 
@@ -320,31 +329,38 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return false;
     };
 
-    const completeMissionAction = async (missionId: string): Promise<boolean> => {
+    const completeMissionAction = async (missionId: string, targetUserId?: string): Promise<boolean> => {
         if (!currentUser) return false;
+
+        // Admin can complete missions for other users
+        const userId = (currentUser.is_admin && targetUserId) ? targetUserId : currentUser.id;
 
         const mission = missions.find(m => m.id === missionId);
         if (!mission) return false;
 
-        const success = await completeMission(currentUser.id, missionId, mission);
+        const success = await completeMission(userId, missionId, mission);
         if (success) {
             setMissionProgress(prev => [
-                ...prev.filter(p => p.mission_id !== missionId),
+                ...prev.filter(p => !(p.mission_id === missionId && p.user_id === userId)),
                 {
                     id: `temp_${Date.now()}`,
-                    user_id: currentUser.id,
+                    user_id: userId,
                     mission_id: missionId,
                     completed: true,
                     completed_at: new Date().toISOString()
                 }
             ]);
 
-            // Refresh user data to get updated XP
+            // Refresh members data to get updated XP for the target user
             const membersData = await getMembers();
-            const updatedUser = membersData.find(m => m.id === currentUser.id);
-            if (updatedUser) {
-                setCurrentUser(updatedUser);
-                setMembers(membersData);
+            setMembers(membersData);
+
+            // Update currentUser if it's the same user
+            if (userId === currentUser.id) {
+                const updatedUser = membersData.find(m => m.id === currentUser.id);
+                if (updatedUser) {
+                    setCurrentUser(updatedUser);
+                }
             }
         }
         return success;
