@@ -154,8 +154,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
         const totalReactions = reactions.length;
 
         // Get reactors with their info
-        const reactorUsers = reactions.map(r => getMember(r.user_id)).filter(Boolean);
-        const uniqueReactorUsers = [...new Map(reactorUsers.map(u => [u?.id, u])).values()];
+        const reactorUsers = reactions.map(r => getMember(r.user_id)).filter((m): m is NonNullable<typeof m> => Boolean(m));
+        const uniqueReactorUsers = [...new Map(reactorUsers.map(u => [u.id, u])).values()];
 
         return (
           <div key={post.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
