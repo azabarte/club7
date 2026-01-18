@@ -1,10 +1,15 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import * as faceapi from '@vladmandic/face-api';
 
 interface FaceFiltersProps {
     videoRef: React.RefObject<HTMLVideoElement>;
     activeFilter: string | null;
     onReady?: () => void;
+}
+
+// Handle to expose to parent
+export interface FaceFiltersHandle {
+    getCanvas: () => HTMLCanvasElement | null;
 }
 
 // Filter definitions with emoji overlays and effects
@@ -30,8 +35,13 @@ const FILTERS = {
 
 export const AVAILABLE_FILTERS = Object.keys(FILTERS);
 
-export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter, onReady }) => {
+export const FaceFilters = forwardRef<FaceFiltersHandle, FaceFiltersProps>(({ videoRef, activeFilter, onReady }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    // Expose canvas to parent via ref
+    useImperativeHandle(ref, () => ({
+        getCanvas: () => canvasRef.current
+    }));
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [isDetecting, setIsDetecting] = useState(false);
     const [useStaticMode, setUseStaticMode] = useState(false); // Fallback mode
@@ -323,7 +333,9 @@ export const FaceFilters: React.FC<FaceFiltersProps> = ({ videoRef, activeFilter
             style={{ zIndex: 10, transform: 'scaleX(-1)' }} // Canvas itself should fail to flip if we want direct overlay match with flipped video
         />
     );
-};
+});
+
+FaceFilters.displayName = 'FaceFilters';
 
 // Filter selector component remains same...
 interface FilterSelectorProps {

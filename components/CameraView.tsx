@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../lib/store';
 import { RefreshCcw, Zap, X, Image as ImageIcon, Loader2, Check, Video, Camera, Sparkles } from 'lucide-react';
-import { FaceFilters, FilterSelector } from './FaceFilters';
+import { FaceFilters, FilterSelector, FaceFiltersHandle } from './FaceFilters';
 
 interface CameraViewProps {
   onClose: () => void;
@@ -43,7 +43,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const maxRecordingTimeRef = useRef<NodeJS.Timeout | null>(null);
-  const faceFilterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const faceFiltersRef = useRef<FaceFiltersHandle>(null);
 
   const [activeARFilter, setActiveARFilter] = useState<string | null>(null);
   const [showARFilters, setShowARFilters] = useState(false);
@@ -145,7 +145,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Apply filter
+    // Apply color filter
     const filter = filters.find(f => f.id === selectedFilter);
     if (filter?.css) {
       ctx.filter = filter.css;
@@ -157,7 +157,24 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
       ctx.scale(-1, 1);
     }
 
+    // Draw video frame
     ctx.drawImage(video, 0, 0);
+
+    // Reset transform and filter for overlay
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'none';
+
+    // Draw face filter overlay if active
+    if (activeARFilter && faceFiltersRef.current) {
+      const filterCanvas = faceFiltersRef.current.getCanvas();
+      if (filterCanvas && filterCanvas.width > 0 && filterCanvas.height > 0) {
+        // The filter canvas has scaleX(-1) applied via CSS, so we need to flip it back for drawing
+        // Actually, we draw it as-is since both video and filter canvas share the same coordinate space
+        // But the filter canvas CSS has scaleX(-1) which doesn't affect the actual pixel data
+        // So we just draw it directly
+        ctx.drawImage(filterCanvas, 0, 0, canvas.width, canvas.height);
+      }
+    }
 
     // Convert to blob
     canvas.toBlob((blob) => {
@@ -359,6 +376,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
                   style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
                 >
                   <FaceFilters
+                    ref={faceFiltersRef}
                     videoRef={videoRef}
                     activeFilter={activeARFilter}
                   />
