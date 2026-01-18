@@ -278,7 +278,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
             className="mt-2 text-[#4ECDC4] text-xs font-bold flex items-center gap-1 hover:underline"
           >
             <Sparkles size={12} />
-            ¡Crea tu avatar con IA!
+            Cambia tu Avatar
           </button>
         )}
 
