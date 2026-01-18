@@ -70,6 +70,7 @@ interface StoreState {
     updateAvatar: (avatarUrl: string) => Promise<boolean>;
     deleteMessageAction: (messageId: string) => Promise<boolean>;
     deletePostAction: (postId: string) => Promise<boolean>;
+    deleteCommentAction: (commentId: string, postId: string) => Promise<boolean>;
     addNewMember: (name: string) => Promise<ClubMember | null>;
     updateMember: (id: string, updates: Partial<ClubMember>) => Promise<boolean>;
     deleteMemberAction: (id: string) => Promise<boolean>;
@@ -467,6 +468,16 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         return success;
     };
 
+    const deleteCommentAction = async (commentId: string, postId: string): Promise<boolean> => {
+        const success = await deleteCommentApi(commentId);
+        if (success) {
+            // Refresh comments for this post
+            const comments = await getCommentsForPost(postId);
+            setPostComments(prev => ({ ...prev, [postId]: comments }));
+        }
+        return success;
+    };
+
     const addNewMember = async (name: string): Promise<ClubMember | null> => {
         const member = await createMember(name);
         if (member) {
@@ -519,6 +530,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         updateAvatar,
         deleteMessageAction,
         deletePostAction,
+        deleteCommentAction,
         addNewMember,
         updateMember,
         deleteMemberAction,

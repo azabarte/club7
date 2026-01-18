@@ -9,7 +9,7 @@ interface FeedViewProps {
 }
 
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
-  const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, isLoading, deletePostAction } = useStore();
+  const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, deleteCommentAction, isLoading, deletePostAction } = useStore();
   const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
   const [emojiPickerOpenFor, setEmojiPickerOpenFor] = useState<string | null>(null);
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
@@ -401,8 +401,9 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                   <div className="space-y-3 mb-3">
                     {comments.map((comment) => {
                       const commentAuthor = getMember(comment.user_id);
+                      const canDelete = currentUser?.is_admin || comment.user_id === currentUser?.id;
                       return (
-                        <div key={comment.id} className="flex gap-2">
+                        <div key={comment.id} className="flex gap-2 group">
                           <img
                             src={commentAuthor?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${commentAuthor?.name || 'user'}`}
                             className="w-8 h-8 rounded-full flex-shrink-0"
@@ -413,6 +414,19 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                             <p className="text-black text-sm">{comment.content}</p>
                             <span className="text-xs text-gray-400">{formatTimeAgo(comment.created_at)}</span>
                           </div>
+                          {canDelete && (
+                            <button
+                              onClick={async () => {
+                                if (window.confirm('¿Eliminar este comentario?')) {
+                                  await deleteCommentAction(comment.id, post.id);
+                                }
+                              }}
+                              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all self-center p-1"
+                              title="Eliminar comentario"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
