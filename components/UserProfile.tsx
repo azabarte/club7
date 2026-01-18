@@ -39,7 +39,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
   const [createSuccess, setCreateSuccess] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [editingUser, setEditingUser] = useState<ClubMember | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', password: '', xp: 0, level: 1, is_admin: false, stickers_unlocked: [] as string[] });
+  const [editForm, setEditForm] = useState({ name: '', password: '', xp: '', level: '', is_admin: false, stickers_unlocked: [] as string[] });
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -149,8 +149,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     setEditForm({
       name: member.name,
       password: member.password || '1234',
-      xp: member.xp,
-      level: member.level,
+      xp: member.xp.toString(),
+      level: member.level.toString(),
       is_admin: member.is_admin,
       stickers_unlocked: member.stickers_unlocked || []
     });
@@ -162,8 +162,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     await updateMember(editingUser.id, {
       name: editForm.name,
       password: editForm.password,
-      xp: editForm.xp,
-      level: editForm.level,
+      xp: parseInt(editForm.xp) || 0,
+      level: parseInt(editForm.level) || 1,
       is_admin: editForm.is_admin
     });
 
@@ -609,7 +609,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
                       <input
                         type="number"
                         value={editForm.level}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, level: e.target.value }))}
                         className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
                       />
                     </div>
@@ -618,7 +618,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
                       <input
                         type="number"
                         value={editForm.xp}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, xp: parseInt(e.target.value) || 0 }))}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, xp: e.target.value }))}
                         className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white"
                       />
                     </div>
