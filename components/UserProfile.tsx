@@ -26,7 +26,7 @@ const avatarStyles = [
     bgs: ['ffd5dc', 'c0aede', 'f8b4d9', 'fbbf24', 'a78bfa', 'f472b6']
   },
   {
-    name: '😎 Emoji Style',
+    name: '😎 Avatares',
     style: 'avataaars',
     seeds: ['Cool1', 'Happy1', 'Fun1', 'Smile1', 'Wink1', 'Party1', 'Dance1', 'Rock1', 'Peace1', 'Love1', 'Star1', 'Fire1'],
     bgs: ['65c3c8', 'ef9fbc', 'eeaf3a', '516dff', 'f97316', '22c55e']
@@ -40,25 +40,25 @@ const avatarStyles = [
   {
     name: '🤖 Robots',
     style: 'bottts',
-    seeds: ['Bot1', 'Bot2', 'Bot3', 'Bot4', 'Bot5', 'Bot6', 'Bot7', 'Bot8', 'Bot9', 'Bot10', 'Bot11', 'Bot12'],
+    seeds: ['RoboMax', 'CyberBot', 'MetalHead', 'NeonDroid', 'TechBot', 'AIHelper', 'MechWarrior', 'RoboPal', 'SteelFriend', 'ChipMate', 'ByteBot', 'CoolBot'],
     bgs: ['0ea5e9', '8b5cf6', 'ec4899', '14b8a6', 'f59e0b', '6366f1']
   },
   {
     name: '😄 Divertido',
-    style: 'big-smile',
+    style: 'fun-emoji',
     seeds: ['Alegre1', 'Risa1', 'Feliz1', 'Sonrisa1', 'Joy1', 'Happy2', 'Cheerful1', 'Sunny1', 'Bright1', 'Glow1', 'Shine1', 'Sparkle1'],
     bgs: ['fbbf24', 'f472b6', '34d399', 'f87171', 'a78bfa', '38bdf8']
   },
   {
-    name: '🐱 Animales',
-    style: 'thumbs',
+    name: '👂 Orejas',
+    style: 'big-ears',
     seeds: ['Cat1', 'Dog1', 'Fox1', 'Bear1', 'Panda1', 'Tiger1', 'Lion1', 'Wolf1', 'Bunny1', 'Owl1', 'Penguin1', 'Koala1'],
     bgs: ['ffd5dc', 'd1f4d1', 'ffeaa7', 'c0aede', 'b6e3f4', 'fab1a0']
   },
   {
-    name: '👤 Minimalista',
-    style: 'initials',
-    seeds: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
+    name: '🧑 Personas',
+    style: 'notionists',
+    seeds: ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Sam', 'Drew', 'Jamie', 'Chris', 'Pat', 'Robin'],
     bgs: ['0ea5e9', 'ec4899', '8b5cf6', '14b8a6', 'f59e0b', 'ef4444']
   }
 ];
