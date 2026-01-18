@@ -492,15 +492,29 @@ export async function createMember(name: string): Promise<ClubMember | null> {
 }
 
 export async function deleteMember(memberId: string): Promise<boolean> {
-  const { error } = await supabase
+  console.log('[DELETE MEMBER] Starting deletion for ID:', memberId);
+
+  const { data, error, count, status, statusText } = await supabase
     .from('club_members')
     .delete()
-    .eq('id', memberId);
+    .eq('id', memberId)
+    .select();
+
+  console.log('[DELETE MEMBER] Response:', { data, error, count, status, statusText });
 
   if (error) {
-    console.error('Error deleting member:', error);
+    console.error('[DELETE MEMBER] Error:', error);
+    alert(`Error al borrar usuario: ${error.message}`);
     return false;
   }
+
+  if (!data || data.length === 0) {
+    console.warn('[DELETE MEMBER] No rows were deleted. User may not exist or RLS blocked it.');
+    alert('No se pudo borrar el usuario. Puede que no tengas permisos.');
+    return false;
+  }
+
+  console.log('[DELETE MEMBER] Successfully deleted user:', data);
   return true;
 }
 
