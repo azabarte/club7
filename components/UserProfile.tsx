@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { ClubMember, Post, uploadMedia } from '../lib/supabase';
-import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Wand2, RefreshCcw, Trash2 } from 'lucide-react';
-import { generateAvatarFromSelfie, isGeminiConfigured } from '../lib/gemini';
+import { ArrowLeft, Grid, Film, User as UserIcon, Sparkles, Camera, Check, X, UserPlus, Shield, Loader2, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 import CameraView from './CameraView';
 
 interface UserProfileProps {
@@ -12,21 +11,67 @@ interface UserProfileProps {
   isCurrentUser: boolean;
 }
 
-// Avatar options using Dicebear Lorelei style
-const avatarOptions = [
-  { seed: 'Adventure1', bg: 'b6e3f4' },
-  { seed: 'Adventure2', bg: 'ffd5dc' },
-  { seed: 'Adventure3', bg: 'c0aede' },
-  { seed: 'Adventure4', bg: 'd1f4d1' },
-  { seed: 'Adventure5', bg: 'ffdfbf' },
-  { seed: 'Cool1', bg: 'ffeaa7' },
-  { seed: 'Cool2', bg: 'dfe6e9' },
-  { seed: 'Cool3', bg: 'fab1a0' },
-  { seed: 'Happy1', bg: 'a29bfe' },
-  { seed: 'Happy2', bg: '81ecec' },
-  { seed: 'Fun1', bg: 'fd79a8' },
-  { seed: 'Fun2', bg: '74b9ff' },
+// Massive avatar catalog with multiple styles
+const avatarStyles = [
+  {
+    name: '🎨 Cartoon',
+    style: 'adventurer',
+    seeds: ['Felix', 'Aneka', 'Milo', 'Luna', 'Zoe', 'Max', 'Chloe', 'Leo', 'Nala', 'Oscar', 'Bella', 'Simba'],
+    bgs: ['b6e3f4', 'ffd5dc', 'c0aede', 'd1f4d1', 'ffdfbf', 'ffeaa7']
+  },
+  {
+    name: '✨ Elegante',
+    style: 'lorelei',
+    seeds: ['Princess', 'Queen', 'Star', 'Moon', 'Rose', 'Violet', 'Aurora', 'Celeste', 'Diamond', 'Pearl', 'Ruby', 'Emerald'],
+    bgs: ['ffd5dc', 'c0aede', 'f8b4d9', 'fbbf24', 'a78bfa', 'f472b6']
+  },
+  {
+    name: '😎 Emoji Style',
+    style: 'avataaars',
+    seeds: ['Cool1', 'Happy1', 'Fun1', 'Smile1', 'Wink1', 'Party1', 'Dance1', 'Rock1', 'Peace1', 'Love1', 'Star1', 'Fire1'],
+    bgs: ['65c3c8', 'ef9fbc', 'eeaf3a', '516dff', 'f97316', '22c55e']
+  },
+  {
+    name: '🎮 Pixel Art',
+    style: 'pixel-art',
+    seeds: ['Player1', 'Hero1', 'Ninja1', 'Knight1', 'Mage1', 'Rogue1', 'Warrior1', 'Archer1', 'Pirate1', 'Viking1', 'Samurai1', 'Wizard1'],
+    bgs: ['b6e3f4', 'c0aede', 'ffd5dc', 'd1f4d1', 'ffdfbf', '81ecec']
+  },
+  {
+    name: '🤖 Robots',
+    style: 'bottts',
+    seeds: ['Bot1', 'Bot2', 'Bot3', 'Bot4', 'Bot5', 'Bot6', 'Bot7', 'Bot8', 'Bot9', 'Bot10', 'Bot11', 'Bot12'],
+    bgs: ['0ea5e9', '8b5cf6', 'ec4899', '14b8a6', 'f59e0b', '6366f1']
+  },
+  {
+    name: '😄 Divertido',
+    style: 'big-smile',
+    seeds: ['Alegre1', 'Risa1', 'Feliz1', 'Sonrisa1', 'Joy1', 'Happy2', 'Cheerful1', 'Sunny1', 'Bright1', 'Glow1', 'Shine1', 'Sparkle1'],
+    bgs: ['fbbf24', 'f472b6', '34d399', 'f87171', 'a78bfa', '38bdf8']
+  },
+  {
+    name: '🐱 Animales',
+    style: 'thumbs',
+    seeds: ['Cat1', 'Dog1', 'Fox1', 'Bear1', 'Panda1', 'Tiger1', 'Lion1', 'Wolf1', 'Bunny1', 'Owl1', 'Penguin1', 'Koala1'],
+    bgs: ['ffd5dc', 'd1f4d1', 'ffeaa7', 'c0aede', 'b6e3f4', 'fab1a0']
+  },
+  {
+    name: '👤 Minimalista',
+    style: 'initials',
+    seeds: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
+    bgs: ['0ea5e9', 'ec4899', '8b5cf6', '14b8a6', 'f59e0b', 'ef4444']
+  }
 ];
+
+// Generate avatar URL for any style
+const getAvatarUrlForStyle = (style: string, seed: string, bg: string) =>
+  `https://api.dicebear.com/9.x/${style}/svg?seed=${seed}&backgroundColor=${bg}`;
+
+// Legacy simple function for default avatar options
+const avatarOptions = avatarStyles[0].seeds.slice(0, 12).map((seed, i) => ({
+  seed,
+  bg: avatarStyles[0].bgs[i % avatarStyles[0].bgs.length]
+}));
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
   const { currentUser, updateAvatar, addNewMember, members, updateMember, deleteMemberAction } = useStore();
@@ -78,79 +123,64 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
     }
   };
 
-  const handleCameraCapture = async (file: File, action: 'use' | 'ai') => {
-    if (action === 'ai') {
-      // AI Generation Flow
-      handleSelfieFile(file);
-    } else {
-      // Direct Upload Flow
-      setIsUpdating(true);
-      try {
-        const uploadedUrl = await uploadMedia(file, 'avatars');
-        if (uploadedUrl) {
-          const success = await updateAvatar(uploadedUrl);
-          if (success) {
-            setShowAvatarPicker(false);
-          }
-        } else {
-          setAiError('Error al subir la foto');
+  const handleCameraCapture = async (file: File) => {
+    // Direct Upload Flow - always use the photo directly
+    setIsUpdating(true);
+    try {
+      const uploadedUrl = await uploadMedia(file, 'avatars');
+      if (uploadedUrl) {
+        const success = await updateAvatar(uploadedUrl);
+        if (success) {
+          setShowAvatarPicker(false);
         }
-      } catch (error) {
-        console.error('Error uploading avatar:', error);
+      } else {
         setAiError('Error al subir la foto');
-      } finally {
-        setIsUpdating(false);
       }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      setAiError('Error al subir la foto');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const handleSelfieFile = async (file: File) => {
-    setIsGeneratingAI(true);
+  // Handle photo upload from file input
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUpdating(true);
     setAiError(null);
 
     try {
-      const avatarUrl = await generateAvatarFromSelfie(file);
-      if (avatarUrl) {
-        // If it's a DiceBear URL (starts with http), use it directly
-        // If it's a data URL (base64) from direct generation, upload it
-        if (avatarUrl.startsWith('http')) {
-          const success = await updateAvatar(avatarUrl);
-          if (success) {
-            setShowAvatarPicker(false);
-          } else {
-            setAiError('Error al actualizar el perfil');
-          }
+      const uploadedUrl = await uploadMedia(file, 'avatars');
+      if (uploadedUrl) {
+        const success = await updateAvatar(uploadedUrl);
+        if (success) {
+          setShowAvatarPicker(false);
         } else {
-          // Convert data URL to blob and upload
-          const response = await fetch(avatarUrl);
-          const blob = await response.blob();
-          const avatarFile = new File([blob], `ai_avatar_${Date.now()}.png`, { type: 'image/png' });
-          const uploadedUrl = await uploadMedia(avatarFile, 'avatars');
-
-          if (uploadedUrl) {
-            const success = await updateAvatar(uploadedUrl);
-            if (success) {
-              setShowAvatarPicker(false);
-            }
-          } else {
-            setAiError('Error al subir el avatar');
-          }
+          setAiError('Error al guardar el avatar');
         }
       } else {
-        setAiError('No se pudo generar el avatar. Inténtalo de nuevo.');
+        setAiError('Error al subir la foto');
       }
     } catch (error) {
-      console.error('Error generating AI avatar:', error);
-      setAiError('Error al generar el avatar');
+      console.error('Error uploading photo:', error);
+      setAiError('Error al subir la foto');
     } finally {
-      setIsGeneratingAI(false);
+      setIsUpdating(false);
     }
   };
 
-  const handleSelfieSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    handleSelfieFile(file);
+  // Handle selecting an avatar from the catalog
+  const handleStyleAvatarSelect = async (style: string, seed: string, bg: string) => {
+    setIsUpdating(true);
+    const url = getAvatarUrlForStyle(style, seed, bg);
+    const success = await updateAvatar(url);
+    setIsUpdating(false);
+    if (success) {
+      setShowAvatarPicker(false);
+    }
   };
 
   const isAdmin = currentUser?.is_admin;
@@ -364,7 +394,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
       {showAvatarPicker && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center">
           <div className="w-full max-w-lg bg-gradient-to-br from-[#1a0533] to-[#0a1628] rounded-t-3xl p-6 pb-10 border-t border-white/10 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-white">Elige tu avatar</h2>
               <button
                 onClick={() => setShowAvatarPicker(false)}
@@ -374,82 +404,71 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
               </button>
             </div>
 
-            {/* AI Avatar Generation - Now at Top */}
-            <div className="mb-4">
-              <button
-                onClick={() => setShowCamera(true)}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition-transform mb-3"
-              >
-                <Camera size={22} />
-                Tomar Selfie
-              </button>
-
-              <p className="text-center text-xs text-white/40 mb-3">O sube una foto de tu galería</p>
-
-              <div className="p-4 bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl border border-white/10">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                    <Sparkles size={20} className="text-white animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-white">Crear con IA</h3>
-                    <p className="text-xs text-white/50">Tu avatar único desde una selfie</p>
-                  </div>
-                </div>
-
-                <input
-                  type="file"
-                  ref={selfieInputRef}
-                  onChange={handleSelfieSelect}
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                />
+            {/* Photo Upload Section */}
+            <div className="mb-6">
+              <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => selfieInputRef.current?.click()}
-                  disabled={isGeneratingAI || isUpdating}
-                  className="w-full py-3 rounded-xl bg-white text-purple-900 font-bold flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] transition-all shadow-lg"
+                  onClick={() => setShowCamera(true)}
+                  className="py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition-transform"
                 >
-                  {isGeneratingAI ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <Camera size={18} />
-                      Subir Selfie y Generar
-                    </>
-                  )}
+                  <Camera size={20} />
+                  Tomar Foto
                 </button>
-                {aiError && (
-                  <p className="text-red-400 text-xs text-center mt-2 bg-red-900/20 py-1 rounded-lg border border-red-500/20">{aiError}</p>
-                )}
-              </div>
-            </div>
 
-            <h3 className="text-sm font-bold text-white/50 mb-3 uppercase tracking-wide">O elige uno prediseñado</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {avatarOptions.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleAvatarSelect(opt.seed, opt.bg)}
-                  disabled={isUpdating}
-                  className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-[#4ECDC4] transition-all hover:scale-105 disabled:opacity-50"
-                >
-                  <img
-                    src={getAvatarUrl(opt.seed, opt.bg)}
-                    alt={`Avatar ${i + 1}`}
-                    className="w-full h-full object-cover"
+                <label className="py-4 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition-transform cursor-pointer">
+                  <Upload size={20} />
+                  Subir Foto
+                  <input
+                    type="file"
+                    ref={selfieInputRef}
+                    onChange={handlePhotoUpload}
+                    accept="image/*"
+                    className="hidden"
                   />
-                </button>
-              ))}
+                </label>
+              </div>
+              {aiError && (
+                <p className="text-red-400 text-xs text-center mt-2 bg-red-900/20 py-2 rounded-lg border border-red-500/20">{aiError}</p>
+              )}
             </div>
 
+            {/* Avatar Catalog by Style */}
+            <h3 className="text-sm font-bold text-white/50 mb-3 uppercase tracking-wide">O elige un avatar</h3>
+
+            {avatarStyles.map((styleGroup, styleIndex) => (
+              <div key={styleIndex} className="mb-6">
+                <h4 className="text-white font-bold mb-2 flex items-center gap-2">
+                  {styleGroup.name}
+                </h4>
+                <div className="grid grid-cols-6 gap-2">
+                  {styleGroup.seeds.map((seed, seedIndex) => {
+                    const bg = styleGroup.bgs[seedIndex % styleGroup.bgs.length];
+                    return (
+                      <button
+                        key={`${styleGroup.style}-${seed}`}
+                        onClick={() => handleStyleAvatarSelect(styleGroup.style, seed, bg)}
+                        disabled={isUpdating}
+                        className="aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-[#4ECDC4] transition-all hover:scale-110 disabled:opacity-50 bg-gray-800"
+                      >
+                        <img
+                          src={getAvatarUrlForStyle(styleGroup.style, seed, bg)}
+                          alt={`${styleGroup.name} ${seed}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             {isUpdating && (
-              <div className="text-center mt-4 text-[#4ECDC4]">
-                Actualizando avatar...
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-10 rounded-t-3xl">
+                <div className="text-center text-white">
+                  <Loader2 size={32} className="animate-spin mx-auto mb-2" />
+                  <p className="font-bold">Guardando...</p>
+                </div>
               </div>
             )}
           </div>
