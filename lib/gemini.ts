@@ -31,9 +31,22 @@ interface AvatarFeatures {
  */
 export async function generateAvatarFromSelfie(selfieFile: File): Promise<string | null> {
     const client = getClient();
+    let features: AvatarFeatures;
+
+    // Default features (fallback)
+    const defaultFeatures: AvatarFeatures = {
+        hairColor: '#2c1810',
+        skinColor: '#f0c8a0',
+        backgroundColor: getRandomColor(),
+        accessories: [],
+        hairStyle: 'short',
+        seed: `user_${Date.now()}` // Unique seed ensures uniqueness
+    };
+
     if (!client) {
-        console.error('Gemini API key not configured');
-        return null;
+        console.warn('Gemini API key not configured, using random avatar');
+        // Even without API key, return a valid avatar
+        return generateDiceBearUrl(defaultFeatures);
     }
 
     try {
@@ -74,7 +87,6 @@ Respond ONLY with a JSON object in this exact format (no other text):
         console.log('Gemini response:', responseText);
 
         // Parse the JSON from the response
-        let features: AvatarFeatures;
         try {
             // Try to extract JSON from the response (handle markdown code blocks)
             let jsonStr = responseText;
@@ -85,35 +97,34 @@ Respond ONLY with a JSON object in this exact format (no other text):
             const parsed = JSON.parse(jsonStr);
 
             features = {
-                hairColor: parsed.hairColor || '#2c1810',
-                skinColor: parsed.skinColor || '#f0c8a0',
-                backgroundColor: parsed.backgroundColor || '#a78bfa',
+                hairColor: parsed.hairColor || defaultFeatures.hairColor,
+                skinColor: parsed.skinColor || defaultFeatures.skinColor,
+                backgroundColor: parsed.backgroundColor || defaultFeatures.backgroundColor,
                 accessories: parsed.hasGlasses ? ['glasses'] : [],
-                hairStyle: parsed.hairStyle || 'short',
+                hairStyle: parsed.hairStyle || defaultFeatures.hairStyle,
                 seed: `user_${Date.now()}`
             };
         } catch (parseError) {
             console.error('Error parsing Gemini response, using defaults:', parseError);
-            // Use random defaults if parsing fails
-            features = {
-                hairColor: '#2c1810',
-                skinColor: '#f0c8a0',
-                backgroundColor: '#a78bfa',
-                accessories: [],
-                hairStyle: 'short',
-                seed: `user_${Date.now()}`
-            };
+            features = defaultFeatures;
         }
 
-        // Generate DiceBear avatar URL with the extracted features
-        const avatarUrl = generateDiceBearUrl(features);
-        console.log('Generated DiceBear avatar URL:', avatarUrl);
-
-        return avatarUrl;
     } catch (error) {
-        console.error('Error generating avatar:', error);
-        return null;
+        console.error('Error using Gemini API, falling back to basic generation:', error);
+        // If Gemini fails, we STILL return an avatar, just not personalized
+        features = defaultFeatures;
     }
+
+    // Generate DiceBear avatar URL with the extracted (or default) features
+    const avatarUrl = generateDiceBearUrl(features);
+    console.log('Generated DiceBear avatar URL:', avatarUrl);
+
+    return avatarUrl;
+}
+
+function getRandomColor(): string {
+    const colors = ['b6e3f4', 'ffd5dc', 'c0aede', 'd1f4d1', 'ffdfbf', 'ffeaa7', 'dfe6e9', 'fab1a0', 'a29bfe', '81ecec', 'fd79a8', '74b9ff'];
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
 /**
