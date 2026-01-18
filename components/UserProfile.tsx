@@ -29,7 +29,7 @@ const avatarOptions = [
 ];
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurrentUser }) => {
-  const { currentUser, updateAvatar, addNewMember, members } = useStore();
+  const { currentUser, updateAvatar, addNewMember, members, updateMember } = useStore();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -158,15 +158,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, posts, onBack, isCurren
   const handleUpdateUser = async () => {
     if (!editingUser) return;
 
-    // Call store update method
-    const { updateMember } = useStore();
     await updateMember(editingUser.id, {
       name: editForm.name,
       password: editForm.password,
       xp: editForm.xp,
       level: editForm.level,
-      is_admin: editForm.is_admin,
-      stickers_unlocked: editForm.stickers_unlocked
+      is_admin: editForm.is_admin
     });
 
     setEditingUser(null);
