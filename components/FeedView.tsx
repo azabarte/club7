@@ -123,23 +123,49 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
       {/* Stories / Active Members - Instagram Style (larger) */}
       <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
-        {/* Filter out admin users unless current user is admin */}
-        {members.filter(m => currentUser?.is_admin || !m.is_admin).map((member) => (
-          <button
-            key={member.id}
-            onClick={() => onUserClick(member.id)}
-            className="flex flex-col items-center gap-2 min-w-[80px] active:scale-95 transition-transform"
-          >
-            <div className={`w-20 h-20 rounded-full p-[3px] ${member.id === currentUser?.id ? 'bg-gradient-to-tr from-indigo-400 to-cyan-400' : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'}`}>
-              <img
-                src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
-                alt={member.name}
-                className="w-full h-full rounded-full object-cover border-[3px] border-white bg-gray-100"
-              />
-            </div>
-            <span className="text-xs font-medium text-gray-700 truncate max-w-[80px]">{member.name}</span>
-          </button>
-        ))}
+        {/* Sort: current user first, then others. Filter out admin users unless current user is admin */}
+        {[
+          ...(currentUser ? [currentUser] : []),
+          ...members.filter(m => m.id !== currentUser?.id && (currentUser?.is_admin || !m.is_admin))
+        ].map((member) => {
+          const isCurrentUser = member.id === currentUser?.id;
+          return (
+            <button
+              key={member.id}
+              onClick={() => onUserClick(member.id)}
+              className="flex flex-col items-center gap-2 min-w-[80px] active:scale-95 transition-transform"
+            >
+              {/* Double ring for current user */}
+              {isCurrentUser ? (
+                <div className="relative">
+                  <div className="w-[88px] h-[88px] rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-amber-500 to-yellow-400 animate-pulse">
+                    <div className="w-full h-full rounded-full p-[3px] bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-500">
+                      <img
+                        src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                        alt={member.name}
+                        className="w-full h-full rounded-full object-cover border-[3px] border-white bg-gray-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
+                    TÚ
+                  </div>
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600">
+                  <img
+                    src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                    alt={member.name}
+                    className="w-full h-full rounded-full object-cover border-[3px] border-white bg-gray-100"
+                  />
+                </div>
+              )}
+              <span className={`text-xs font-medium truncate max-w-[80px] ${isCurrentUser ? 'text-amber-600 font-bold' : 'text-gray-700'}`}>
+                {isCurrentUser ? 'Tu historia' : member.name}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <h2 className="text-2xl font-bold text-gray-800 px-2">Lo último ⚡</h2>
@@ -226,7 +252,6 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                     }}
                     src={post.url}
                     loop
-                    muted
                     playsInline
                     className="w-full h-full object-cover"
                   />
