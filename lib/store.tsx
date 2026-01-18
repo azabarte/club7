@@ -534,17 +534,21 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     };
 
     const addEventAction = async (event: Omit<Event, 'id' | 'created_at'>, shouldCreatePost?: boolean): Promise<boolean> => {
-        const newEvent = await createEvent(event);
+        // Use default image if none provided
+        const finalEvent = {
+            ...event,
+            image_url: event.image_url || '/default-event.png'
+        };
+
+        const newEvent = await createEvent(finalEvent);
         if (newEvent) {
             setEvents(prev => [...prev, newEvent].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()));
 
             // Auto-create post if requested
             if (shouldCreatePost && currentUser) {
                 try {
-                    const encodedTitle = encodeURIComponent(event.title);
-                    // Using a dynamic image generator service for the event banner
-                    const imageUrl = `https://placehold.co/600x400/indigo/white/png?text=${encodedTitle}&font=montserrat`;
-
+                    // Use the event image for the post, or the default banner
+                    const imageUrl = newEvent.image_url || '/default-event.png';
                     const caption = `📅 ¡Nuevo evento en la agenda!\n\n${event.emoji} **${event.title}**\n🗓️ ${event.event_date} ${event.event_time ? '⏰ ' + event.event_time : ''}\n${event.location ? '📍 ' + event.location : ''}\n\n${event.description || ''}`;
 
                     const post = await createPost(currentUser.id, 'image', imageUrl, caption);
@@ -553,7 +557,6 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
                     }
                 } catch (err) {
                     console.error('Error creating auto-post for event:', err);
-                    // Don't fail the event creation if post fails
                 }
             }
 

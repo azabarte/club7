@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../lib/store';
+import { supabase, uploadMedia } from '../lib/supabase';
 import { Event } from '../lib/supabase';
-import { Plus, Trash2, X, Gift, BookOpen, PartyPopper, Star, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Share2 } from 'lucide-react';
+import { Plus, Trash2, X, Gift, BookOpen, PartyPopper, Star, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Share2, Image as ImageIcon } from 'lucide-react';
 
 const AgendaView: React.FC = () => {
     const { events, currentUser, addEventAction, deleteEventAction } = useStore();
@@ -18,8 +19,11 @@ const AgendaView: React.FC = () => {
         location: '',
         event_type: 'general',
         emoji: '📅',
+        image_url: '',
         createPost: false
     });
+    const [eventImageFile, setEventImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const eventTypes = [
@@ -62,21 +66,18 @@ const AgendaView: React.FC = () => {
             .sort((a, b) => (a.event_time || '').localeCompare(b.event_time || ''));
     }, [events, selectedDate]);
 
-    const upcomingEvents = useMemo(() => {
-        // Show next 3 events if no specific date selected or empty day
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return events.filter(e => new Date(e.event_date) >= today)
-            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
-            .slice(0, 3);
-    }, [events]);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentUser || !newEvent.title || !newEvent.event_date) return;
 
         setIsSubmitting(true);
         try {
+            let imageUrl = newEvent.image_url;
+            if (eventImageFile) {
+                const uploadedUrl = await uploadMedia(eventImageFile, 'posts'); // Using existing 'posts' bucket for now
+                if (uploadedUrl) imageUrl = uploadedUrl;
+            }
+
             const success = await addEventAction({
                 user_id: currentUser.id,
                 title: newEvent.title,
@@ -85,7 +86,8 @@ const AgendaView: React.FC = () => {
                 event_time: newEvent.event_time || undefined,
                 location: newEvent.location || undefined,
                 event_type: newEvent.event_type as any || 'general',
-                emoji: newEvent.emoji || '📅'
+                emoji: newEvent.emoji || '📅',
+                image_url: imageUrl || undefined
             }, newEvent.createPost);
 
             if (success) {
@@ -93,13 +95,16 @@ const AgendaView: React.FC = () => {
                 setNewEvent({
                     title: '',
                     description: '',
-                    event_date: selectedDate.toISOString().split('T')[0], // Reset to currently selected
+                    event_date: selectedDate.toISOString().split('T')[0],
                     event_time: '',
                     location: '',
                     event_type: 'general',
                     emoji: '📅',
+                    image_url: '',
                     createPost: false
                 });
+                setEventImageFile(null);
+                setImagePreview(null);
             } else {
                 alert('Error al crear el evento');
             }
@@ -121,16 +126,13 @@ const AgendaView: React.FC = () => {
     // Calendar Grid Generation
     const totalDays = daysInMonth(currentDate);
     const startDay = firstDayOfMonth(currentDate); // 0 (Sun) - 6 (Sat)
-    // Adjust for Monday start (Spain standard) -> 0=Mon, 6=Sun
     const renderStartDay = startDay === 0 ? 6 : startDay - 1;
 
     const calendarDays = [];
-    // Empty cells for previous month
     for (let i = 0; i < renderStartDay; i++) {
         calendarDays.push(<div key={`empty-${i}`} className="h-10 sm:h-12 border-b border-gray-50 bg-gray-50/30" />);
     }
 
-    // Days
     for (let day = 1; day <= totalDays; day++) {
         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
         const dayEvents = events.filter(e => isSameDay(new Date(e.event_date), date));
@@ -150,11 +152,9 @@ const AgendaView: React.FC = () => {
                     {day}
                 </span>
 
-                {/* Event Dots */}
                 <div className="flex gap-0.5 mt-1 px-1 flex-wrap justify-center w-full">
-                    {dayEvents.slice(0, 3).map((ev, i) => {
+                    {dayEvents.slice(0, 3).map((ev) => {
                         const typeInfo = eventTypes.find(t => t.type === ev.event_type) || eventTypes[4];
-                        // Extract tailwind color class for background
                         const bgClass = typeInfo.color.split(' ')[1] || 'bg-gray-400';
                         return (
                             <div key={ev.id} className={`w-1.5 h-1.5 rounded-full ${bgClass}`} />
@@ -185,7 +185,6 @@ const AgendaView: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto w-full">
                 <div className="max-w-2xl mx-auto w-full pb-20">
-
                     {/* Calendar Control */}
                     <div className="p-4 flex justify-between items-center">
                         <h2 className="text-lg font-bold capitalize text-gray-800">
@@ -211,7 +210,7 @@ const AgendaView: React.FC = () => {
                     </div>
 
                     {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 bg-white shadow-sm mb-6">
+                    <div className="grid grid-cols-7 bg-white shadow-sm mb-6 border-l border-t border-gray-100">
                         {calendarDays}
                     </div>
 
@@ -226,12 +225,19 @@ const AgendaView: React.FC = () => {
                             {eventsForSelectedDate.length > 0 ? (
                                 eventsForSelectedDate.map((event) => {
                                     const typeInfo = eventTypes.find(t => t.type === event.event_type) || eventTypes[4];
-                                    const canDelete = currentUser?.id === event.user_id || currentUser?.role === 'admin';
+                                    const canDelete = currentUser?.id === event.user_id || currentUser?.is_admin;
 
                                     return (
                                         <div key={event.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 transition hover:shadow-md flex gap-4 group">
-                                            <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl ${typeInfo.color.split(' ')[1]} flex-shrink-0 text-2xl`}>
-                                                {event.emoji}
+                                            <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl ${typeInfo.color.split(' ')[1]} flex-shrink-0 relative overflow-hidden group/img`}>
+                                                {event.image_url ? (
+                                                    <img src={event.image_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <img src="/default-event.png" alt="" className="w-full h-full object-cover opacity-50" />
+                                                )}
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl group-hover/img:scale-110 transition-transform">
+                                                    {event.emoji}
+                                                </div>
                                             </div>
 
                                             <div className="flex-1 min-w-0">
@@ -253,7 +259,7 @@ const AgendaView: React.FC = () => {
                                                 )}
 
                                                 {event.description && (
-                                                    <p className="text-sm text-gray-500 mt-2 line-clamp-2 bg-gray-50 p-2 rounded-lg text-xs italic">
+                                                    <p className="text-xs text-gray-500 mt-2 line-clamp-2 bg-gray-50 p-2 rounded-lg italic">
                                                         "{event.description}"
                                                     </p>
                                                 )}
@@ -300,43 +306,43 @@ const AgendaView: React.FC = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                {/* Title and Type */}
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1.5">Título del Evento</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition outline-none text-lg font-medium placeholder:font-normal text-gray-900"
-                                            placeholder="Ej: Examen de Matemáticas"
-                                            value={newEvent.title}
-                                            onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                                        />
-                                    </div>
+                            <form id="eventForm" onSubmit={handleSubmit} className="space-y-5 pb-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Título del Evento</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition outline-none text-lg font-medium text-gray-900"
+                                        placeholder="Ej: Examen de Matemáticas"
+                                        value={newEvent.title}
+                                        onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
+                                    />
+                                </div>
 
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Evento</label>
-                                        <div className="grid grid-cols-5 gap-2">
-                                            {eventTypes.map(t => (
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Evento</label>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {eventTypes.map(t => {
+                                            const isActive = newEvent.event_type === t.type;
+                                            const colorBase = t.color.split('-')[1];
+                                            return (
                                                 <button
                                                     key={t.type}
                                                     type="button"
                                                     onClick={() => setNewEvent({ ...newEvent, event_type: t.type as any, emoji: t.emoji })}
-                                                    className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${newEvent.event_type === t.type
-                                                        ? `border-${t.color.split('-')[1]}-500 bg-${t.color.split('-')[1]}-50 ring-2 ring-${t.color.split('-')[1]}-200`
+                                                    className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${isActive
+                                                        ? `border-${colorBase}-500 bg-${colorBase}-50 ring-2 ring-${colorBase}-200`
                                                         : 'border-gray-100 hover:bg-gray-50'
                                                         }`}
                                                 >
                                                     <span className="text-xl mb-1">{t.emoji}</span>
                                                     <span className="text-[10px] font-bold text-gray-600 truncate w-full text-center">{t.label}</span>
                                                 </button>
-                                            ))}
-                                        </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
-                                {/* Date and Time */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Fecha</label>
@@ -365,14 +371,13 @@ const AgendaView: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Location */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Lugar (Opcional)</label>
                                     <div className="relative">
                                         <input
                                             type="text"
                                             className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none pl-10 text-gray-900"
-                                            placeholder="Ej: Aula 3B, Casa de..."
+                                            placeholder="Ej: Aula 3B, Aula de Música..."
                                             value={newEvent.location}
                                             onChange={e => setNewEvent({ ...newEvent, location: e.target.value })}
                                         />
@@ -380,9 +385,8 @@ const AgendaView: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Description */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Notas</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Notas (Opcional)</label>
                                     <textarea
                                         className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-20 text-gray-900"
                                         placeholder="Detalles adicionales..."
@@ -391,7 +395,49 @@ const AgendaView: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* Auto-Post Option */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Imagen del Evento</label>
+                                    <div className="flex flex-col gap-3">
+                                        {imagePreview ? (
+                                            <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+                                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImagePreview(null);
+                                                        setEventImageFile(null);
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label className="flex flex-col items-center justify-center aspect-video w-full border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group">
+                                                <div className="flex flex-col items-center gap-2 text-gray-400 group-hover:text-indigo-500 transition-colors">
+                                                    <ImageIcon size={32} />
+                                                    <span className="text-sm font-bold">Subir foto (Opcional)</span>
+                                                    <span className="text-xs">Usa la imagen por defecto si no subes nada</span>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            setEventImageFile(file);
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => setImagePreview(reader.result as string);
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex items-start gap-3">
                                     <div className="pt-0.5">
                                         <input
@@ -412,7 +458,6 @@ const AgendaView: React.FC = () => {
                             </form>
                         </div>
 
-                        {/* Footer Actions */}
                         <div className="p-4 bg-white border-t flex gap-3 shrink-0">
                             <button
                                 onClick={() => setIsAddingEvent(false)}
@@ -421,7 +466,8 @@ const AgendaView: React.FC = () => {
                                 Cancelar
                             </button>
                             <button
-                                onClick={handleSubmit}
+                                form="eventForm"
+                                type="submit"
                                 disabled={isSubmitting}
                                 className="flex-[2] py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
                             >

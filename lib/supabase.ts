@@ -91,6 +91,7 @@ export interface Event {
   location?: string;
   event_type: 'birthday' | 'exam' | 'party' | 'special' | 'general';
   emoji: string;
+  image_url?: string;
   created_at: string;
 }
 
