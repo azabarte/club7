@@ -169,14 +169,18 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
         })}
       </div>
 
-      <div className="flex items-center gap-3 px-2 mb-2">
+      <div className="flex items-center gap-2 px-2 mb-2">
         <h2 className="text-2xl font-bold text-gray-800">Lo último</h2>
         <button
           onClick={() => refreshData(true)}
-          className="flex items-center gap-1.5 bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-200 transition-all shadow-[0_0_10px_rgba(99,102,241,0.4)] hover:shadow-[0_0_15px_rgba(99,102,241,0.6)] group active:scale-95"
+          className="group focus:outline-none transition-transform active:scale-90 ml-1"
+          title="Actualizar novedades"
         >
-          <Zap size={16} className="fill-indigo-600 animate-[pulse_2s_ease-in-out_infinite]" />
-          Actualizar
+          <img
+            src="/assets/update-icon.png"
+            alt="Actualizar"
+            className="w-10 h-10 animate-[pulse_3s_ease-in-out_infinite] drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] group-hover:drop-shadow-[0_0_12px_rgba(234,179,8,0.8)] transition-all"
+          />
         </button>
       </div>
 
