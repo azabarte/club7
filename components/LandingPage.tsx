@@ -95,7 +95,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const progress = sliderX / getMaxSlide();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-[#1a0533] via-[#0d1b2a] to-[#0a1628]">
+    <div className="relative w-full h-screen overflow-hidden bg-[#0a0a12]">
       {/* Video Background */}
       <video
         ref={videoRef}
@@ -103,11 +103,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         loop
         playsInline
         muted={isMuted}
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-90"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] object-contain"
       />
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1628]/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a12]/80" />
 
       {/* Content */}
       <div className="absolute inset-0 z-10 flex flex-col justify-between">
