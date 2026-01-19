@@ -95,25 +95,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   const progress = sliderX / getMaxSlide();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#0a0a12]">
-      {/* Video Background */}
+    <div className="relative w-full h-screen overflow-hidden bg-[#1a0a2e]">
+      {/* Video Background - pegado arriba */}
       <video
         ref={videoRef}
         src={videoUrl}
         loop
         playsInline
         muted={isMuted}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] h-[95%] object-contain"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[97%] h-[97%] object-contain"
       />
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a12]/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#1a0a2e]/80" />
 
       {/* Content */}
       <div className="absolute inset-0 z-10 flex flex-col justify-between">
 
-        {/* Top Section - Volume Button Only */}
-        <div className="pt-12 px-6">
+        {/* Top Section - Volume Button - más abajo para no tapar título */}
+        <div className="pt-24 px-6">
           <div className="flex justify-end">
             <button
               onClick={toggleMute}
@@ -124,8 +124,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
           </div>
         </div>
 
-        {/* Bottom Section - Improved Slide to Unlock */}
-        <div className="w-full p-4 pb-8">
+        {/* Bottom Section - Slider más arriba */}
+        <div className="w-full p-4 pb-12">
           <div
             ref={sliderRef}
             className="relative w-full h-16 rounded-full overflow-hidden"
