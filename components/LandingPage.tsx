@@ -103,7 +103,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         loop
         playsInline
         muted={isMuted}
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[97%] h-[97%] object-contain"
+        className="absolute -top-4 left-1/2 -translate-x-1/2 w-[99%] h-[99%] object-contain"
       />
 
       {/* Gradient Overlay */}
@@ -113,7 +113,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       <div className="absolute inset-0 z-10 flex flex-col justify-between">
 
         {/* Top Section - Volume Button - más abajo para no tapar título */}
-        <div className="pt-24 px-6">
+        <div className="pt-36 px-6">
           <div className="flex justify-end">
             <button
               onClick={toggleMute}
@@ -125,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         </div>
 
         {/* Bottom Section - Slider más arriba */}
-        <div className="w-full p-4 pb-12">
+        <div className="w-full p-4 pb-20">
           <div
             ref={sliderRef}
             className="relative w-full h-16 rounded-full overflow-hidden"
