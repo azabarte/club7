@@ -2,8 +2,7 @@ import { User, Post, Message, Mission } from './types';
 
 // Array of landing page videos that alternate
 export const LANDING_VIDEO_URLS = [
-  "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/portada1.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9wb3J0YWRhMS5tcDQiLCJpYXQiOjE3Njg1OTIwNjgsImV4cCI6MjA4Mzk1MjA2OH0.PbciwkrszCye_eOpKW79JgU2FNiF1Qq2NdmNCEbm624",
-  "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/portada2.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9wb3J0YWRhMi5tcDQiLCJpYXQiOjE3Njg1OTIwOTMsImV4cCI6MjA4Mzk1MjA5M30.d77gryHSxlSbIfcKI-MPo38X76kFQXuCfwItEgE6y8A"
+  "https://fhufjkzbbxpbyylsmjsu.supabase.co/storage/v1/object/sign/IMAGENES/nueva.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9lOGY1YjY0ZS0xMzcxLTRmOWItODQyZS1mZGU4MmU3NDNlYTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJJTUFHRU5FUy9udWV2YS5tcDQiLCJpYXQiOjE3Njg4MjA2MjAsImV4cCI6MjA4NDE4MDYyMH0.7Q_YNv5LhPgi60VNbshceiFuWVUdHaxpmf3I19gzjT4"
 ];
 
 export const MOCK_USERS: User[] = [
