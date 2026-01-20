@@ -146,10 +146,10 @@ const AppContent: React.FC = () => {
             {/* Besti Robot Button - Simplified */}
             <button
               onClick={() => setShowXPModal(true)}
-              className="relative w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              className="relative w-16 h-16 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
               style={{
-                background: `linear-gradient(135deg, #4ade80, #22c55e)`,
-                boxShadow: `0 4px 15px rgba(34, 197, 94, 0.4)`
+                background: 'transparent',
+                boxShadow: 'none'
               }}
             >
               {/* Besti robot image with subtle float */}
@@ -227,10 +227,10 @@ const AppContent: React.FC = () => {
             {/* Giant Besti Robot */}
             <div className="text-center mb-4">
               <div
-                className="inline-flex items-center justify-center w-32 h-32 rounded-full mb-3 relative"
+                className="inline-flex items-center justify-center w-32 h-32 mb-3 relative"
                 style={{
-                  background: `linear-gradient(135deg, #4ade80, #22c55e)`,
-                  boxShadow: `0 0 40px rgba(34, 197, 94, 0.5), 0 10px 30px rgba(0,0,0,0.2)`
+                  background: 'transparent',
+                  boxShadow: 'none'
                 }}
               >
                 {/* Floating stars around Besti */}
