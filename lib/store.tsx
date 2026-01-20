@@ -259,6 +259,23 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         };
     }, [isAuthenticated, refreshData]);
 
+    // Helper function to award XP and recalculate level
+    const awardXP = async (userId: string, amount: number) => {
+        const member = members.find(m => m.id === userId);
+        if (!member) return;
+
+        const newXP = (member.xp || 0) + amount;
+        const newLevel = Math.floor(newXP / 1000) + 1;
+
+        const updated = await updateMemberDetails(userId, { xp: newXP, level: newLevel });
+        if (updated) {
+            setMembers(prev => prev.map(m => m.id === userId ? updated : m));
+            if (currentUser && currentUser.id === userId) {
+                setCurrentUser(updated);
+            }
+        }
+    };
+
     // Actions
     const login = async (password: string, memberId: string): Promise<boolean> => {
         // Find member (ensure we have members loaded)
@@ -286,6 +303,17 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
                 setCurrentUser(member);
                 setIsAuthenticated(true);
                 localStorage.setItem('bestiesocial_user_id', member.id);
+
+                // Award 100 XP for opening the app (login)
+                const newXP = (member.xp || 0) + 100;
+                const newLevel = Math.floor(newXP / 1000) + 1;
+                updateMemberDetails(member.id, { xp: newXP, level: newLevel }).then(updated => {
+                    if (updated) {
+                        setCurrentUser(updated);
+                        setMembers(prev => prev.map(m => m.id === member.id ? updated : m));
+                    }
+                });
+
                 return true;
             }
         } catch (e) {
@@ -324,6 +352,10 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
         const post = await createPost(currentUser.id, type, url, caption, stickers);
         if (post) {
             setPosts(prev => [post, ...prev]);
+
+            // Award 300 XP for creating a post
+            awardXP(currentUser.id, 300);
+
             return true;
         }
         return false;

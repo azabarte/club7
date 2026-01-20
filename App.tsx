@@ -9,7 +9,24 @@ import GamificationView from './components/GamificationView';
 import AgendaView from './components/AgendaView';
 import UserProfile from './components/UserProfile';
 import { AppTab } from './types';
-import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar } from 'lucide-react';
+import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar, X, Sparkles } from 'lucide-react';
+
+// Trophy color based on level
+const getTrophyColor = (level: number) => {
+  if (level >= 10) return '#B9F2FF'; // Diamond
+  if (level >= 6) return '#E5E4E2'; // Platinum
+  if (level >= 4) return '#FFD700'; // Gold
+  if (level >= 2) return '#C0C0C0'; // Silver
+  return '#CD7F32'; // Bronze
+};
+
+const getLevelName = (level: number) => {
+  if (level >= 10) return 'Diamante 💎';
+  if (level >= 6) return 'Platino ⚪';
+  if (level >= 4) return 'Oro 🥇';
+  if (level >= 2) return 'Plata 🥈';
+  return 'Bronce 🥉';
+};
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, currentUser, members, posts, logout } = useStore();
@@ -18,6 +35,7 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.HOME);
   const [showCamera, setShowCamera] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [showXPModal, setShowXPModal] = useState(false);
 
   // Show loading spinner
   if (isLoading) {
@@ -54,6 +72,11 @@ const AppContent: React.FC = () => {
     logout();
     setHasSeenLanding(false);
   };
+
+  const currentLevel = currentUser?.level || 1;
+  const currentXP = currentUser?.xp || 0;
+  const trophyColor = getTrophyColor(currentLevel);
+
 
   const renderContent = () => {
     // If viewing a specific user profile
@@ -121,13 +144,68 @@ const AppContent: React.FC = () => {
               </div>
             )}
             <button
-              onClick={() => handleTabChange(AppTab.MISSIONS)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${activeTab === AppTab.MISSIONS ? 'bg-indigo-500 text-white' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}
+              onClick={() => setShowXPModal(true)}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              style={{ backgroundColor: trophyColor }}
             >
-              <Trophy size={20} />
+              <Trophy size={20} className="text-white drop-shadow-sm" />
             </button>
           </div>
         </header>
+      )}
+
+      {/* XP Modal */}
+      {showXPModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowXPModal(false)}>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Tu Nivel</h3>
+              <button onClick={() => setShowXPModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: trophyColor }}
+              >
+                <span className="text-3xl">🏆</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Nivel {currentLevel}</h2>
+                <p className="text-sm font-medium" style={{ color: trophyColor }}>{getLevelName(currentLevel)}</p>
+              </div>
+            </div>
+            <div className="bg-gray-100 rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <Sparkles size={14} className="text-indigo-500" />
+                  XP Total
+                </span>
+                <span className="font-black text-indigo-600">{currentXP}</span>
+              </div>
+              <div className="w-full bg-gray-300 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
+                  style={{ width: `${((currentXP % 1000) / 1000) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {currentXP % 1000} / 1000 XP para nivel {currentLevel + 1}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-green-50 p-3 rounded-xl text-center">
+                <p className="font-bold text-green-700">+100 XP</p>
+                <p className="text-green-600">Abrir app</p>
+              </div>
+              <div className="bg-indigo-50 p-3 rounded-xl text-center">
+                <p className="font-bold text-indigo-700">+300 XP</p>
+                <p className="text-indigo-600">Crear post</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Main Content Area */}
