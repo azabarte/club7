@@ -143,31 +143,42 @@ const AppContent: React.FC = () => {
                 </span>
               </div>
             )}
-            {/* Animated Trophy Button */}
+            {/* Animated Besti Robot Button */}
             <button
               onClick={() => setShowXPModal(true)}
-              className="relative w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-125 active:scale-95 group"
+              className="relative w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-125 active:scale-95 group overflow-visible"
               style={{
-                background: `linear-gradient(135deg, ${trophyColor}, ${trophyColor}dd)`,
-                boxShadow: `0 0 20px ${trophyColor}80, 0 4px 15px rgba(0,0,0,0.2)`
+                background: `linear-gradient(135deg, #4ade80, #22c55e)`,
+                boxShadow: `0 0 25px rgba(34, 197, 94, 0.6), 0 4px 15px rgba(0,0,0,0.2)`
               }}
             >
               {/* Pulse ring animation */}
               <div
-                className="absolute inset-0 rounded-full animate-ping opacity-30"
-                style={{ backgroundColor: trophyColor }}
+                className="absolute inset-0 rounded-full animate-ping opacity-40"
+                style={{ backgroundColor: '#22c55e' }}
               />
-              {/* Rotating sparkle ring */}
-              <div className="absolute inset-[-4px] rounded-full border-2 border-dashed opacity-40 animate-spin" style={{ borderColor: trophyColor, animationDuration: '8s' }} />
-              {/* Trophy icon with bounce */}
-              <span className="text-2xl animate-bounce" style={{ animationDuration: '2s' }}>🏆</span>
+              {/* Rotating hearts ring */}
+              <div className="absolute inset-[-8px] rounded-full border-2 border-dashed opacity-50 animate-spin" style={{ borderColor: '#f97316', animationDuration: '6s' }} />
+              {/* Besti robot image with wiggle animation */}
+              <img
+                src="/besti.png"
+                alt="Besti"
+                className="w-12 h-12 object-contain drop-shadow-lg"
+                style={{
+                  animation: 'wiggle 1s ease-in-out infinite',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                }}
+              />
               {/* Level badge */}
               <div
-                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)' }}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-lg animate-pulse"
+                style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
               >
                 {currentLevel}
               </div>
+              {/* Sparkle effects */}
+              <div className="absolute -top-1 -left-1 text-xs animate-ping" style={{ animationDuration: '2s' }}>✨</div>
+              <div className="absolute -top-1 -right-2 text-xs animate-bounce" style={{ animationDuration: '1.5s' }}>⭐</div>
             </button>
           </div>
         </header>
@@ -224,17 +235,32 @@ const AppContent: React.FC = () => {
               <X size={18} className="text-gray-400 group-hover:text-red-500" />
             </button>
 
-            {/* Giant Trophy */}
+            {/* Giant Besti Robot */}
             <div className="text-center mb-4">
               <div
-                className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-3 animate-bounce"
+                className="inline-flex items-center justify-center w-32 h-32 rounded-full mb-3 relative"
                 style={{
-                  background: `linear-gradient(135deg, ${trophyColor}, ${trophyColor}aa)`,
-                  boxShadow: `0 0 30px ${trophyColor}60`,
-                  animationDuration: '2s'
+                  background: `linear-gradient(135deg, #4ade80, #22c55e)`,
+                  boxShadow: `0 0 40px rgba(34, 197, 94, 0.5), 0 10px 30px rgba(0,0,0,0.2)`
                 }}
               >
-                <span className="text-5xl">🏆</span>
+                {/* Floating stars around Besti */}
+                <div className="absolute -top-2 left-1/2 text-xl animate-bounce" style={{ animationDuration: '1.5s' }}>⭐</div>
+                <div className="absolute top-1/4 -left-2 text-lg animate-ping" style={{ animationDuration: '2s' }}>✨</div>
+                <div className="absolute top-1/4 -right-2 text-lg animate-pulse">💫</div>
+                <div className="absolute -bottom-1 left-1/4 text-sm animate-bounce" style={{ animationDuration: '2s' }}>🌟</div>
+                <div className="absolute -bottom-1 right-1/4 text-sm animate-ping" style={{ animationDuration: '3s' }}>✨</div>
+
+                {/* Besti with fun animation */}
+                <img
+                  src="/besti.png"
+                  alt="Besti"
+                  className="w-28 h-28 object-contain drop-shadow-2xl"
+                  style={{
+                    animation: 'wiggle 0.8s ease-in-out infinite',
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
+                  }}
+                />
               </div>
               <h2
                 className="text-4xl font-black bg-clip-text text-transparent"
