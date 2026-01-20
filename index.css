@@ -110,24 +110,16 @@ body {
   animation: slide-hint 1.5s ease-in-out infinite;
 }
 
-/* Besti wiggle animation */
+/* Besti subtle float animation */
 @keyframes wiggle {
 
   0%,
   100% {
-    transform: rotate(-3deg) scale(1);
-  }
-
-  25% {
-    transform: rotate(3deg) scale(1.05);
+    transform: translateY(0);
   }
 
   50% {
-    transform: rotate(-3deg) scale(1);
-  }
-
-  75% {
-    transform: rotate(3deg) scale(1.05);
+    transform: translateY(-3px);
   }
 }
 

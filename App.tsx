@@ -143,42 +143,31 @@ const AppContent: React.FC = () => {
                 </span>
               </div>
             )}
-            {/* Animated Besti Robot Button */}
+            {/* Besti Robot Button - Simplified */}
             <button
               onClick={() => setShowXPModal(true)}
-              className="relative w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-125 active:scale-95 group overflow-visible"
+              className="relative w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
               style={{
                 background: `linear-gradient(135deg, #4ade80, #22c55e)`,
-                boxShadow: `0 0 25px rgba(34, 197, 94, 0.6), 0 4px 15px rgba(0,0,0,0.2)`
+                boxShadow: `0 4px 15px rgba(34, 197, 94, 0.4)`
               }}
             >
-              {/* Pulse ring animation */}
-              <div
-                className="absolute inset-0 rounded-full animate-ping opacity-40"
-                style={{ backgroundColor: '#22c55e' }}
-              />
-              {/* Rotating hearts ring */}
-              <div className="absolute inset-[-8px] rounded-full border-2 border-dashed opacity-50 animate-spin" style={{ borderColor: '#f97316', animationDuration: '6s' }} />
-              {/* Besti robot image with wiggle animation */}
+              {/* Besti robot image with subtle float */}
               <img
                 src="/besti.png"
                 alt="Besti"
-                className="w-12 h-12 object-contain drop-shadow-lg"
+                className="w-11 h-11 object-contain"
                 style={{
-                  animation: 'wiggle 1s ease-in-out infinite',
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                  animation: 'wiggle 2s ease-in-out infinite'
                 }}
               />
               {/* Level badge */}
               <div
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-white shadow-lg animate-pulse"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-md"
                 style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
               >
                 {currentLevel}
               </div>
-              {/* Sparkle effects */}
-              <div className="absolute -top-1 -left-1 text-xs animate-ping" style={{ animationDuration: '2s' }}>✨</div>
-              <div className="absolute -top-1 -right-2 text-xs animate-bounce" style={{ animationDuration: '1.5s' }}>⭐</div>
             </button>
           </div>
         </header>
