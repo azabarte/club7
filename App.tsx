@@ -143,67 +143,183 @@ const AppContent: React.FC = () => {
                 </span>
               </div>
             )}
+            {/* Animated Trophy Button */}
             <button
               onClick={() => setShowXPModal(true)}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
-              style={{ backgroundColor: trophyColor }}
+              className="relative w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-125 active:scale-95 group"
+              style={{
+                background: `linear-gradient(135deg, ${trophyColor}, ${trophyColor}dd)`,
+                boxShadow: `0 0 20px ${trophyColor}80, 0 4px 15px rgba(0,0,0,0.2)`
+              }}
             >
-              <Trophy size={20} className="text-white drop-shadow-sm" />
+              {/* Pulse ring animation */}
+              <div
+                className="absolute inset-0 rounded-full animate-ping opacity-30"
+                style={{ backgroundColor: trophyColor }}
+              />
+              {/* Rotating sparkle ring */}
+              <div className="absolute inset-[-4px] rounded-full border-2 border-dashed opacity-40 animate-spin" style={{ borderColor: trophyColor, animationDuration: '8s' }} />
+              {/* Trophy icon with bounce */}
+              <span className="text-2xl animate-bounce" style={{ animationDuration: '2s' }}>🏆</span>
+              {/* Level badge */}
+              <div
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)' }}
+              >
+                {currentLevel}
+              </div>
             </button>
           </div>
         </header>
       )}
 
-      {/* XP Modal */}
+      {/* XP Modal - Fun & Dynamic */}
       {showXPModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowXPModal(false)}>
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Tu Nivel</h3>
-              <button onClick={() => setShowXPModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex items-center gap-4 mb-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowXPModal(false)}
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.3) 0%, rgba(0,0,0,0.8) 100%)'
+          }}
+        >
+          {/* Floating particles background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(20)].map((_, i) => (
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: trophyColor }}
+                key={i}
+                className="absolute animate-pulse"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  fontSize: `${12 + Math.random() * 20}px`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  animationDuration: `${2 + Math.random() * 3}s`
+                }}
               >
-                <span className="text-3xl">🏆</span>
+                {['✨', '⭐', '🌟', '💫', '🔥'][Math.floor(Math.random() * 5)]}
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-gray-900">Nivel {currentLevel}</h2>
-                <p className="text-sm font-medium" style={{ color: trophyColor }}>{getLevelName(currentLevel)}</p>
+            ))}
+          </div>
+
+          <div
+            className="relative bg-gradient-to-br from-white via-white to-indigo-50 rounded-[2rem] p-6 w-full max-w-sm shadow-2xl transform transition-all animate-bounce"
+            onClick={e => e.stopPropagation()}
+            style={{
+              animationDuration: '0.3s',
+              animationIterationCount: '1',
+              boxShadow: `0 0 40px ${trophyColor}60, 0 20px 60px rgba(0,0,0,0.3)`
+            }}
+          >
+            {/* Decorative corner sparkles */}
+            <div className="absolute -top-3 -left-3 text-2xl animate-spin" style={{ animationDuration: '3s' }}>✨</div>
+            <div className="absolute -top-3 -right-3 text-2xl animate-spin" style={{ animationDuration: '4s' }}>🌟</div>
+            <div className="absolute -bottom-3 -left-3 text-2xl animate-bounce" style={{ animationDuration: '2s' }}>⭐</div>
+            <div className="absolute -bottom-3 -right-3 text-2xl animate-pulse">💫</div>
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowXPModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors group"
+            >
+              <X size={18} className="text-gray-400 group-hover:text-red-500" />
+            </button>
+
+            {/* Giant Trophy */}
+            <div className="text-center mb-4">
+              <div
+                className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-3 animate-bounce"
+                style={{
+                  background: `linear-gradient(135deg, ${trophyColor}, ${trophyColor}aa)`,
+                  boxShadow: `0 0 30px ${trophyColor}60`,
+                  animationDuration: '2s'
+                }}
+              >
+                <span className="text-5xl">🏆</span>
               </div>
-            </div>
-            <div className="bg-gray-100 rounded-xl p-4 mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <Sparkles size={14} className="text-indigo-500" />
-                  XP Total
-                </span>
-                <span className="font-black text-indigo-600">{currentXP}</span>
-              </div>
-              <div className="w-full bg-gray-300 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
-                  style={{ width: `${((currentXP % 1000) / 1000) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {currentXP % 1000} / 1000 XP para nivel {currentLevel + 1}
+              <h2
+                className="text-4xl font-black bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${trophyColor}, #6366f1, #8b5cf6)`,
+                  WebkitBackgroundClip: 'text'
+                }}
+              >
+                Nivel {currentLevel}
+              </h2>
+              <p
+                className="text-lg font-bold mt-1"
+                style={{ color: trophyColor }}
+              >
+                {getLevelName(currentLevel)}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-green-50 p-3 rounded-xl text-center">
-                <p className="font-bold text-green-700">+100 XP</p>
-                <p className="text-green-600">Abrir app</p>
+
+            {/* XP Progress Card */}
+            <div
+              className="rounded-2xl p-4 mb-4"
+              style={{
+                background: `linear-gradient(135deg, ${trophyColor}15, ${trophyColor}05)`
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <Sparkles size={16} className="text-yellow-500 animate-pulse" />
+                  Experiencia Total
+                </span>
+                <span
+                  className="text-2xl font-black"
+                  style={{ color: trophyColor }}
+                >
+                  {currentXP.toLocaleString()}
+                </span>
               </div>
-              <div className="bg-indigo-50 p-3 rounded-xl text-center">
-                <p className="font-bold text-indigo-700">+300 XP</p>
-                <p className="text-indigo-600">Crear post</p>
+
+              {/* Animated Progress Bar */}
+              <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse"
+                  style={{ animationDuration: '1.5s' }}
+                />
+                <div
+                  className="relative h-full rounded-full transition-all duration-1000"
+                  style={{
+                    width: `${((currentXP % 1000) / 1000) * 100}%`,
+                    background: `linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #d946ef)`
+                  }}
+                >
+                  {/* Shimmer effect */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"
+                    style={{ animationDuration: '2s' }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between mt-2 text-xs font-medium text-gray-500">
+                <span>{currentXP % 1000} XP</span>
+                <span className="flex items-center gap-1">
+                  🎯 {1000 - (currentXP % 1000)} para nivel {currentLevel + 1}
+                </span>
               </div>
             </div>
+
+            {/* How to Earn - Fun Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
+                <div className="text-3xl mb-1">📱</div>
+                <p className="text-xl font-black">+100</p>
+                <p className="text-xs opacity-90">Abrir app</p>
+              </div>
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
+                <div className="text-3xl mb-1">📸</div>
+                <p className="text-xl font-black">+300</p>
+                <p className="text-xs opacity-90">Crear post</p>
+              </div>
+            </div>
+
+            {/* Fun tip */}
+            <p className="text-center text-xs text-gray-400 mt-4 animate-pulse">
+              ✨ ¡Sigue así para llegar a Diamante! ✨
+            </p>
           </div>
         </div>
       )}
