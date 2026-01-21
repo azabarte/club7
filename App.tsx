@@ -153,15 +153,18 @@ const AppContent: React.FC = () => {
               }}
             >
               {/* Besti robot image with subtle float */}
-              <img
-                src="/robotGif.gif"
-                alt="Besti"
-                className="w-16 h-16 object-contain"
-                style={{
-                  mixBlendMode: 'screen',
-                  filter: 'brightness(1.1)'
-                }}
-              />
+              {/* Besti robot image with subtle float */}
+              <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border border-white/10 shadow-lg">
+                <img
+                  src="/robotGif.gif"
+                  alt="Besti"
+                  className="w-full h-full object-cover scale-110"
+                  style={{
+                    mixBlendMode: 'screen',
+                    filter: 'brightness(1.1) contrast(1.1)'
+                  }}
+                />
+              </div>
               {/* Level badge */}
               <div
                 className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-md"
@@ -242,15 +245,18 @@ const AppContent: React.FC = () => {
                 <div className="absolute -bottom-1 right-1/4 text-sm animate-ping" style={{ animationDuration: '3s' }}>✨</div>
 
                 {/* Besti with fun animation */}
-                <img
-                  src="/robotGif.gif"
-                  alt="Besti"
-                  className="w-full h-full object-contain scale-150"
-                  style={{
-                    mixBlendMode: 'screen',
-                    filter: 'brightness(1.1)'
-                  }}
-                />
+                {/* Besti with fun animation */}
+                <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-white/20 shadow-2xl relative z-10">
+                  <img
+                    src="/robotGif.gif"
+                    alt="Besti"
+                    className="w-full h-full object-cover scale-110"
+                    style={{
+                      mixBlendMode: 'screen',
+                      filter: 'brightness(1.1) contrast(1.1)'
+                    }}
+                  />
+                </div>
               </div>
               <h2
                 className="text-4xl font-black bg-clip-text text-transparent"
