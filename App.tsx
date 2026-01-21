@@ -156,9 +156,10 @@ const AppContent: React.FC = () => {
               <img
                 src="/robotGif.gif"
                 alt="Besti"
-                className="w-14 h-14 object-contain"
+                className="w-16 h-16 object-contain"
                 style={{
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                  mixBlendMode: 'screen',
+                  filter: 'brightness(1.1)'
                 }}
               />
               {/* Level badge */}
@@ -244,9 +245,10 @@ const AppContent: React.FC = () => {
                 <img
                   src="/robotGif.gif"
                   alt="Besti"
-                  className="w-full h-full object-contain drop-shadow-2xl scale-125"
+                  className="w-full h-full object-contain scale-150"
                   style={{
-                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
+                    mixBlendMode: 'screen',
+                    filter: 'brightness(1.1)'
                   }}
                 />
               </div>
