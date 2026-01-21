@@ -17,7 +17,6 @@ import {
     createPost,
     sendMessage,
     completeMission,
-    uploadMedia,
     addReaction,
     removeReaction,
     getReactionsForPost,
@@ -44,6 +43,7 @@ import {
     subscribeToEvents,
     subscribeToEventDeletes,
 } from './supabase';
+import { uploadToCloudinary } from './cloudinary';
 
 interface StoreState {
     // Auth
@@ -337,16 +337,10 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     ): Promise<boolean> => {
         if (!currentUser) return false;
 
-        // Check video limit (max 3 videos per user)
-        if (type === 'video') {
-            const userVideos = posts.filter(p => p.user_id === currentUser.id && p.type === 'video');
-            if (userVideos.length >= 3) {
-                alert('¡Máximo 3 videos! Elimina uno de tus videos existentes para subir otro.');
-                return false;
-            }
-        }
+        // Video limit removed! 
+        // We now use Cloudinary which supports much more storage.
 
-        const url = await uploadMedia(file, 'posts');
+        const url = await uploadToCloudinary(file, 'posts');
         if (!url) return false;
 
         const post = await createPost(currentUser.id, type, url, caption, stickers);
@@ -398,7 +392,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
         let mediaUrl: string | undefined;
         if (file) {
-            mediaUrl = await uploadMedia(file, 'chat') || undefined;
+            mediaUrl = await uploadToCloudinary(file, 'chat') || undefined;
         }
 
         const message = await sendMessage(currentUser.id, type, content, mediaUrl);
@@ -501,6 +495,7 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
     const updateAvatar = async (avatarUrl: string): Promise<boolean> => {
         if (!currentUser) return false;
 
+        // Note: You might want to switch avatar uploads to Cloudinary too if you have an upload UI for it
         const updated = await updateMemberAvatar(currentUser.id, avatarUrl);
         if (updated) {
             setCurrentUser(updated);

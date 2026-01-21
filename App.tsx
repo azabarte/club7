@@ -154,11 +154,11 @@ const AppContent: React.FC = () => {
             >
               {/* Besti robot image with subtle float */}
               <img
-                src="/besti.png"
+                src="/robotGif.gif"
                 alt="Besti"
-                className="w-11 h-11 object-contain"
+                className="w-14 h-14 object-contain"
                 style={{
-                  animation: 'wiggle 2s ease-in-out infinite'
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
                 }}
               />
               {/* Level badge */}
@@ -227,7 +227,7 @@ const AppContent: React.FC = () => {
             {/* Giant Besti Robot */}
             <div className="text-center mb-4">
               <div
-                className="inline-flex items-center justify-center w-32 h-32 mb-3 relative"
+                className="inline-flex items-center justify-center w-40 h-40 mb-3 relative"
                 style={{
                   background: 'transparent',
                   boxShadow: 'none'
@@ -242,11 +242,10 @@ const AppContent: React.FC = () => {
 
                 {/* Besti with fun animation */}
                 <img
-                  src="/besti.png"
+                  src="/robotGif.gif"
                   alt="Besti"
-                  className="w-28 h-28 object-contain drop-shadow-2xl"
+                  className="w-full h-full object-contain drop-shadow-2xl scale-125"
                   style={{
-                    animation: 'wiggle 0.8s ease-in-out infinite',
                     filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
                   }}
                 />
