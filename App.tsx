@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { StoreProvider, useStore } from './lib/store';
 import LandingPage from './components/LandingPage';
 import LoginScreen from './components/LoginScreen';
-// Lazy load components for performance
-const FeedView = React.lazy(() => import('./components/FeedView'));
-const ChatView = React.lazy(() => import('./components/ChatView'));
-const CameraView = React.lazy(() => import('./components/CameraView'));
-const GamificationView = React.lazy(() => import('./components/GamificationView'));
-const AgendaView = React.lazy(() => import('./components/AgendaView'));
-const UserProfile = React.lazy(() => import('./components/UserProfile'));
+import FeedView from './components/FeedView';
+import ChatView from './components/ChatView';
+import CameraView from './components/CameraView';
+import GamificationView from './components/GamificationView';
+import AgendaView from './components/AgendaView';
+import UserProfile from './components/UserProfile';
 import { AppTab } from './types';
 import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar, X, Sparkles } from 'lucide-react';
 
@@ -380,22 +379,14 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="h-full w-full overflow-auto">
-        <React.Suspense fallback={
-          <div className="w-full h-full flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-          </div>
-        }>
-          {renderContent()}
-        </React.Suspense>
+        {renderContent()}
       </main>
 
       {/* Full Screen Camera Overlay */}
       {showCamera && (
-        <React.Suspense fallback={<div className="fixed inset-0 bg-black z-50 flex items-center justify-center"><Loader2 className="text-white animate-spin" /></div>}>
-          <CameraView
-            onClose={() => window.history.back()}
-          />
-        </React.Suspense>
+        <CameraView
+          onClose={() => window.history.back()}
+        />
       )}
 
       {/* Bottom Navigation */}
