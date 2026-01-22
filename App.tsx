@@ -59,13 +59,44 @@ const AppContent: React.FC = () => {
     return <LoginScreen onSuccess={() => { }} />;
   }
 
+  // Handle browser back button
+  React.useEffect(() => {
+    // Set initial state
+    window.history.replaceState({ tab: AppTab.HOME, userId: null, camera: false }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state) {
+        setActiveTab(state.tab || AppTab.HOME);
+        setViewingUserId(state.userId || null);
+        setShowCamera(!!state.camera);
+      } else {
+        // Fallback for empty state (shouldn't happen with replaceState above, but strictly)
+        setActiveTab(AppTab.HOME);
+        setViewingUserId(null);
+        setShowCamera(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleUserClick = (userId: string) => {
+    window.history.pushState({ tab: activeTab, userId, camera: false }, '');
     setViewingUserId(userId);
   };
 
   const handleTabChange = (tab: AppTab) => {
+    window.history.pushState({ tab, userId: null, camera: false }, '');
     setActiveTab(tab);
     setViewingUserId(null);
+    setShowCamera(false);
+  };
+
+  const openCamera = () => {
+    window.history.pushState({ tab: activeTab, userId: viewingUserId, camera: true }, '');
+    setShowCamera(true);
   };
 
   const handleLogout = () => {
@@ -88,7 +119,7 @@ const AppContent: React.FC = () => {
             user={user}
             posts={posts}
             isCurrentUser={user.id === currentUser?.id}
-            onBack={() => setViewingUserId(null)}
+            onBack={() => window.history.back()}
           />
         );
       }
@@ -354,7 +385,7 @@ const AppContent: React.FC = () => {
       {/* Full Screen Camera Overlay */}
       {showCamera && (
         <CameraView
-          onClose={() => setShowCamera(false)}
+          onClose={() => window.history.back()}
         />
       )}
 
@@ -379,7 +410,7 @@ const AppContent: React.FC = () => {
         {/* Button 3: Floating Camera (Center) */}
         <div className="relative -top-6">
           <button
-            onClick={() => setShowCamera(true)}
+            onClick={openCamera}
             className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-transform"
           >
             <Camera size={32} />

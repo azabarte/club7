@@ -359,14 +359,40 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
               <span className="text-[10px] uppercase font-black tracking-widest text-white/40">Galería</span>
             </button>
 
-            <div className="flex flex-col items-center gap-2 -mt-4">
+            <div className="flex flex-col items-center gap-2 -mt-4 relative">
+              {/* Progress Circle for Recording */}
+              {isRecording && (
+                <svg className="absolute top-0 left-0 w-24 h-24 -rotate-90 pointer-events-none z-10">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="46"
+                    stroke="white"
+                    strokeWidth="4"
+                    fill="none"
+                    className="opacity-30"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="46"
+                    stroke="#ef4444"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 46}
+                    strokeDashoffset={2 * Math.PI * 46 * (1 - recordingTime / MAX_RECORDING_SECONDS)}
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                </svg>
+              )}
+
               <button
                 onMouseDown={startRecording}
                 onMouseUp={stopRecording}
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
                 onClick={!isRecording ? takePhoto : undefined}
-                className={`w-24 h-24 rounded-full border-4 flex items-center justify-center transition-all ${isRecording ? 'border-red-500 p-2' : 'border-white p-1 shadow-2xl'}`}
+                className={`w-24 h-24 rounded-full border-4 flex items-center justify-center transition-all ${isRecording ? 'border-transparent p-4 scale-90' : 'border-white p-1 shadow-2xl'}`}
               >
                 <div className={`transition-all ${isRecording ? 'w-full h-full bg-red-500 rounded-2xl' : 'w-full h-full bg-white rounded-full'}`} />
               </button>
