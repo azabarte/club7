@@ -259,24 +259,25 @@ const AppContent: React.FC = () => {
               <div className="absolute -bottom-3 -right-3 text-2xl animate-pulse">💫</div>
 
               {/* Close button */}
+              {/* Close button - Larger for better UX */}
               <button
                 onClick={() => setShowXPModal(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors group"
+                className="absolute top-4 right-4 w-12 h-12 rounded-full bg-gray-100 hover:bg-red-100 flex items-center justify-center transition-colors group z-50 shadow-sm"
               >
-                <X size={18} className="text-gray-400 group-hover:text-red-500" />
+                <X size={24} className="text-gray-400 group-hover:text-red-500" />
               </button>
 
               {/* Content Container with Scroll for small screens */}
               <div className="max-h-[80vh] overflow-y-auto overflow-x-hidden no-scrollbar">
 
-                {/* 1. Animated Robot (Top) */}
+                {/* 1. Static Robot (Top) - No Bounce */}
                 <div className="text-center mb-0 relative">
                   <div className="relative inline-block w-40 h-40">
                     {/* Stars around robot */}
                     <div className="absolute -top-4 -right-4 text-2xl animate-spin z-20">✨</div>
                     <div className="absolute bottom-4 -left-4 text-xl animate-bounce z-20">⭐</div>
 
-                    <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-white shadow-2xl relative z-10 animate-bounce" style={{ animationDuration: '3s' }}>
+                    <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-white shadow-2xl relative z-10">
                       <img
                         src="/robotGif.gif"
                         alt="Besti"
@@ -294,9 +295,9 @@ const AppContent: React.FC = () => {
                       <div className={`w-full h-full bg-gradient-to-r ${medal.gradient} blur-xl rounded-full scale-110`}></div>
                     </div>
 
-                    {/* The Medal (Smaller) */}
+                    {/* The Medal (Small & Elegant) */}
                     <div
-                      className={`relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br ${medal.gradient} flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.3)] mb-2 animate-pulse`}
+                      className={`relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br ${medal.gradient} flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.3)] mb-2 animate-pulse`}
                       style={{ animationDuration: '4s' }}
                     >
                       <div className="absolute inset-1 rounded-full border-2 border-white/40 border-dashed animate-spin-slow" style={{ animationDuration: '15s' }}></div>
@@ -314,21 +315,39 @@ const AppContent: React.FC = () => {
                   </h2>
                 </div>
 
-                {/* Benefits Section */}
+                {/* Benefits Section - True Advanced Emojis */}
                 <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 border border-gray-100">
                   <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <Sparkles size={16} className="text-indigo-500" />
-                    Beneficios Desbloqueados
+                    Tus Emojis Desbloqueados
                   </h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    {['❤️', '🔥', ...(currentLevel >= 2 ? ['😜'] : []), ...(currentLevel >= 3 ? ['💪'] : []), ...(currentLevel >= 4 ? ['🎉'] : []), ...(currentLevel >= 5 ? ['🐶'] : [])].slice(0, 8).map((emoji, i) => (
-                      <div key={i} className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center text-2xl animate-pulse">
-                        {emoji}
-                      </div>
-                    ))}
-                    {currentLevel < 10 && (
-                      <div className="col-span-4 mt-2 text-center text-xs text-gray-400 font-medium bg-gray-50 py-2 rounded-lg">
-                        ¡Sube de nivel para más emojis! 🚀
+                  <div className="grid grid-cols-5 gap-2">
+                    {/* Define emojis locally for display */}
+                    {(() => {
+                      const l1 = ['❤️', '🔥', '😍', '😂'];
+                      const l2 = ['😜', '🤪', '👻', '😎']; // Lvl 2
+                      const l3 = ['💪', '👋', '👀', '🙏']; // Lvl 3
+                      const l4 = ['🎉', '🥂', '🎈', '🍾']; // Lvl 4
+                      const l5 = ['🐶', '🦄', '🐲', '✨']; // Lvl 5+ (Mix)
+
+                      let show = [...l1];
+                      if (currentLevel >= 2) show = [...show, ...l2];
+                      if (currentLevel >= 3) show = [...show, ...l3];
+                      if (currentLevel >= 4) show = [...show, ...l4];
+                      if (currentLevel >= 5) show = [...show, ...l5];
+
+                      // Show only the "advanced" ones (last 10) to save space, or all?
+                      // User wants "advanced emojis available". Let's show top 10 unique.
+                      return show.reverse().slice(0, 10).map((emoji, i) => (
+                        <div key={i} className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center text-2xl animate-pulse shadow-sm border border-gray-100">
+                          {emoji}
+                        </div>
+                      ));
+                    })()}
+
+                    {currentLevel < 5 && (
+                      <div className="col-span-5 mt-2 text-center text-xs text-gray-400 font-medium bg-gray-50 py-2 rounded-lg">
+                        ¡Sube de nivel para emojis animados! 🚀
                       </div>
                     )}
                   </div>
