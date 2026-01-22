@@ -37,28 +37,6 @@ const AppContent: React.FC = () => {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showXPModal, setShowXPModal] = useState(false);
 
-  // Show loading spinner
-  if (isLoading) {
-    return (
-      <div className="w-full h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Cargando BestieSocial...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show landing page first
-  if (!hasSeenLanding) {
-    return <LandingPage onEnter={() => setHasSeenLanding(true)} />;
-  }
-
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <LoginScreen onSuccess={() => { }} />;
-  }
-
   // Handle browser back button
   React.useEffect(() => {
     // Set initial state
@@ -81,6 +59,28 @@ const AppContent: React.FC = () => {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Show loading spinner
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
+          <p className="text-white/60">Cargando BestieSocial...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show landing page first
+  if (!hasSeenLanding) {
+    return <LandingPage onEnter={() => setHasSeenLanding(true)} />;
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <LoginScreen onSuccess={() => { }} />;
+  }
 
   const handleUserClick = (userId: string) => {
     window.history.pushState({ tab: activeTab, userId, camera: false }, '');
