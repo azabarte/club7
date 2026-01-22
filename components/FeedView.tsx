@@ -16,8 +16,13 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
   const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [expandedCaptions, setExpandedCaptions] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+  const toggleCaption = (postId: string) => {
+    setExpandedCaptions(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -322,7 +327,18 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 {post.caption && (
                   <p className="text-white text-base leading-snug drop-shadow-md mb-2">
                     <span className="font-bold mr-2 text-sm opacity-90">{author?.name}</span>
-                    {post.caption}
+                    {expandedCaptions[post.id] || post.caption.length <= 80
+                      ? post.caption
+                      : `${post.caption.substring(0, 80)}... `}
+
+                    {post.caption.length > 80 && (
+                      <button
+                        onClick={() => toggleCaption(post.id)}
+                        className="text-gray-300 hover:text-white text-sm font-bold ml-1 hover:underline"
+                      >
+                        {expandedCaptions[post.id] ? 'Leer menos' : 'Leer más'}
+                      </button>
+                    )}
                   </p>
                 )}
 
@@ -386,31 +402,33 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                 </div>
               )}
 
-              {/* Who Reacted Summary (Expanded) */}
+              {/* Who Reacted - Visual List (Avatar + Emoji) */}
               {totalReactions > 0 && (
-                <div className="mb-4 bg-indigo-50/50 p-3 rounded-2xl">
-                  <div className="flex -space-x-2 mb-2 overflow-hidden py-1">
-                    {uniqueReactorUsers.map((member) => {
-                      if (!member) return null;
+                <div className="mb-3 px-1">
+                  <p className="text-xs text-gray-400 font-medium mb-2 ml-1">Reacciones</p>
+                  <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 px-1">
+                    {uniqueReactorUsers.map((member: any) => {
+                      if (!member || !member.id) return null;
+                      // Find the reaction(s) this user made
+                      const userReactions = reactions.filter(r => r.user_id === member.id);
+                      if (userReactions.length === 0) return null;
+                      const emoji = userReactions[0].emoji; // Show primary reaction
+
                       return (
-                        <img
-                          key={member.id}
-                          src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
-                          className="w-8 h-8 rounded-full border-2 border-white"
-                          alt={member.name}
-                          title={member.name}
-                        />
+                        <div key={member.id} className="relative flex-shrink-0 group">
+                          <img
+                            src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                            className="w-9 h-9 rounded-full border border-gray-100 shadow-sm"
+                            alt={member.name}
+                            title={member.name}
+                          />
+                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm text-[10px] leading-none">
+                            {emoji}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    <span className="font-bold text-indigo-900">
-                      {reactionCounts[uniqueEmojis[0]]} {uniqueEmojis[0]}
-                    </span>
-                    {uniqueEmojis.length > 1 && (
-                      <span> y otros {totalReactions - reactionCounts[uniqueEmojis[0]]} reaccionaron</span>
-                    )}
-                  </p>
                 </div>
               )}
 
