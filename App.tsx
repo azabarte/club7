@@ -403,91 +403,92 @@ const AppContent: React.FC = () => {
                 </p>
               </div>
             </div>
-            )
+          </div>
+        )
       }
 
-            {/* Main Content Area */}
-            <main className="h-full w-full overflow-auto">
-              <React.Suspense fallback={
-                <div className="w-full h-full flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                </div>
-              }>
-                {renderContent()}
-              </React.Suspense>
-            </main>
+      {/* Main Content Area */}
+      <main className="h-full w-full overflow-auto">
+        <React.Suspense fallback={
+          <div className="w-full h-full flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+          </div>
+        }>
+          {renderContent()}
+        </React.Suspense>
+      </main>
 
-            {/* Full Screen Camera Overlay */}
-            {
-              showCamera && (
-                <React.Suspense fallback={<div className="fixed inset-0 bg-black z-50 flex items-center justify-center"><Loader2 className="text-white animate-spin" /></div>}>
-                  <CameraView
-                    onClose={() => window.history.back()}
-                  />
-                </React.Suspense>
-              )
-            }
+      {/* Full Screen Camera Overlay */}
+      {
+        showCamera && (
+          <React.Suspense fallback={<div className="fixed inset-0 bg-black z-50 flex items-center justify-center"><Loader2 className="text-white animate-spin" /></div>}>
+            <CameraView
+              onClose={() => window.history.back()}
+            />
+          </React.Suspense>
+        )
+      }
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-20 pb-4 z-40 flex justify-around items-center px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-20 pb-4 z-40 flex justify-around items-center px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
 
-              {/* Button 1: Exit to Landing Page */}
-              <button
-                onClick={handleLogout}
-                className="p-3 rounded-2xl text-red-400 hover:bg-red-50 hover:text-red-500 transition-all"
-              >
-                <LogOut size={26} />
-              </button>
+        {/* Button 1: Exit to Landing Page */}
+        <button
+          onClick={handleLogout}
+          className="p-3 rounded-2xl text-red-400 hover:bg-red-50 hover:text-red-500 transition-all"
+        >
+          <LogOut size={26} />
+        </button>
 
-              {/* Button 2: Go to Feed */}
-              <NavButton
-                active={activeTab === AppTab.HOME && !viewingUserId}
-                onClick={() => handleTabChange(AppTab.HOME)}
-                icon={<Home size={26} />}
-              />
+        {/* Button 2: Go to Feed */}
+        <NavButton
+          active={activeTab === AppTab.HOME && !viewingUserId}
+          onClick={() => handleTabChange(AppTab.HOME)}
+          icon={<Home size={26} />}
+        />
 
-              {/* Button 3: Floating Camera (Center) */}
-              <div className="relative -top-6">
-                <button
-                  onClick={openCamera}
-                  className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-transform"
-                >
-                  <Camera size={32} />
-                </button>
-              </div>
+        {/* Button 3: Floating Camera (Center) */}
+        <div className="relative -top-6">
+          <button
+            onClick={openCamera}
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-transform"
+          >
+            <Camera size={32} />
+          </button>
+        </div>
 
-              {/* Button 4: Chat */}
-              <NavButton
-                active={activeTab === AppTab.CHAT}
-                onClick={() => handleTabChange(AppTab.CHAT)}
-                icon={<MessageCircle size={26} />}
-              />
+        {/* Button 4: Chat */}
+        <NavButton
+          active={activeTab === AppTab.CHAT}
+          onClick={() => handleTabChange(AppTab.CHAT)}
+          icon={<MessageCircle size={26} />}
+        />
 
-              {/* Button: Agenda */}
-              <NavButton
-                active={activeTab === AppTab.AGENDA}
-                onClick={() => handleTabChange(AppTab.AGENDA)}
-                icon={<Calendar size={26} />}
-              />
+        {/* Button: Agenda */}
+        <NavButton
+          active={activeTab === AppTab.AGENDA}
+          onClick={() => handleTabChange(AppTab.AGENDA)}
+          icon={<Calendar size={26} />}
+        />
 
-              {/* Button 5: Profile */}
-              <NavButton
-                active={activeTab === AppTab.PROFILE}
-                onClick={() => handleTabChange(AppTab.PROFILE)}
-                icon={<UserIcon size={26} />}
-              />
-            </nav>
-          </div >
-        );
+        {/* Button 5: Profile */}
+        <NavButton
+          active={activeTab === AppTab.PROFILE}
+          onClick={() => handleTabChange(AppTab.PROFILE)}
+          icon={<UserIcon size={26} />}
+        />
+      </nav>
+    </div >
+  );
 };
 
 // Wrap with StoreProvider
 const App: React.FC = () => {
   return (
-      <StoreProvider>
-        <AppContent />
-      </StoreProvider>
-      );
+    <StoreProvider>
+      <AppContent />
+    </StoreProvider>
+  );
 };
 
-      export default App;
+export default App;

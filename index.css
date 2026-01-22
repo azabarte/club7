@@ -137,3 +137,65 @@ body {
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+
+/* --- Advanced Emoji Animations --- */
+
+/* Float (Ghosts, Aliens) */
+@keyframes emoji-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(5deg); }
+}
+.animate-emoji-float {
+  animation: emoji-float 3s ease-in-out infinite;
+}
+
+/* Wiggle (Faces, Confused) */
+@keyframes emoji-wiggle {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+.animate-emoji-wiggle {
+  animation: emoji-wiggle 0.5s ease-in-out infinite;
+}
+
+/* Heartbeat (Hearts) */
+@keyframes emoji-heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.3); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.3); }
+  70% { transform: scale(1); }
+}
+.animate-emoji-heartbeat {
+  animation: emoji-heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Party (Confetti, Celebration) */
+@keyframes emoji-party {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-15deg) scale(1.1); }
+  50% { transform: rotate(10deg) scale(1.1); }
+  75% { transform: rotate(-5deg) scale(1.1); }
+}
+.animate-emoji-party {
+  animation: emoji-party 1s ease-in-out infinite;
+}
+
+/* Spin Slow (Magic, Stars) */
+@keyframes emoji-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.animate-emoji-spin {
+  animation: emoji-spin 4s linear infinite;
+}
+
+/* Bounce Fun (Animals, Sport) */
+@keyframes emoji-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-emoji-bounce {
+  animation: emoji-bounce 0.8s ease-in-out infinite;
+}
