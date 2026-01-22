@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { Post, Reaction, Comment } from '../lib/supabase';
+import { getOptimizedUrl } from '../lib/cloudinary';
 import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send, Zap } from 'lucide-react';
 
 interface FeedViewProps {
@@ -232,7 +233,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                     ref={(el) => {
                       if (el) videoRefs.current.set(post.id, el);
                     }}
-                    src={post.url}
+                    src={getOptimizedUrl(post.url, 720)}
                     loop
                     playsInline
                     className="w-full h-full object-cover"
@@ -243,7 +244,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                   </div>
                 </>
               ) : (
-                <img src={post.url} alt="Post" className="w-full h-full object-cover" />
+                <img src={getOptimizedUrl(post.url, 800)} alt="Post" className="w-full h-full object-cover" />
               )}
 
               {/* Header Overlay (User Info) */}

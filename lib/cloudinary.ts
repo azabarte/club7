@@ -40,3 +40,17 @@ export const uploadToCloudinary = async (
         return null;
     }
 };
+
+export const getOptimizedUrl = (url: string, width: number = 800): string => {
+    if (!url.includes('cloudinary.com')) return url;
+
+    // Check if it's already optimized/transformed to avoid duplication if called repeatedly
+    // (Basic check, can be improved)
+    if (url.includes('/q_auto,f_auto')) return url;
+
+    // Insert transformations after /upload/
+    // w_<width>: Resize
+    // q_auto: Automatic quality optimization
+    // f_auto: Automatic format selection (webp/avif)
+    return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`);
+};
