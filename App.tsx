@@ -12,6 +12,21 @@ const UserProfile = React.lazy(() => import('./components/UserProfile'));
 import { AppTab } from './types';
 import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar, X, Sparkles } from 'lucide-react';
 
+interface NavButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+}
+
+const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon }) => (
+  <button
+    onClick={onClick}
+    className={`p-3 rounded-2xl transition-all duration-300 ${active ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}
+  >
+    {icon}
+  </button>
+);
+
 
 
 const AppContent: React.FC = () => {
@@ -251,224 +266,228 @@ const AppContent: React.FC = () => {
                 <X size={18} className="text-gray-400 group-hover:text-red-500" />
               </button>
 
-              {/* HUGE Medal Display */}
-              <div className="text-center mb-6 relative">
-                <div className="relative inline-block">
-                  {/* Rotating rays background */}
-                  <div className="absolute inset-0 animate-spin-slow opacity-20" style={{ animationDuration: '10s' }}>
-                    <div className={`w-full h-full bg-gradient-to-r ${medal.gradient} blur-xl rounded-full scale-150`}></div>
-                  </div>
+              {/* Content Container with Scroll for small screens */}
+              <div className="max-h-[80vh] overflow-y-auto overflow-x-hidden no-scrollbar">
 
-                  {/* The Giant Medal */}
-                  <div
-                    className={`relative w-48 h-48 mx-auto rounded-full bg-gradient-to-br ${medal.gradient} flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.2)] mb-2 animate-bounce`}
-                    style={{ animationDuration: '3s' }}
-                  >
-                    <div className="absolute inset-2 rounded-full border-4 border-white/30 border-dashed animate-spin-slow" style={{ animationDuration: '20s' }}></div>
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/40 via-transparent to-black/10 pointer-events-none"></div>
+                {/* 1. Animated Robot (Top) */}
+                <div className="text-center mb-0 relative">
+                  <div className="relative inline-block w-40 h-40">
+                    {/* Stars around robot */}
+                    <div className="absolute -top-4 -right-4 text-2xl animate-spin z-20">✨</div>
+                    <div className="absolute bottom-4 -left-4 text-xl animate-bounce z-20">⭐</div>
 
-                    <div className="text-center z-10 drop-shadow-md">
-                      <Trophy size={80} className="text-white mx-auto mb-1 filter drop-shadow-lg" strokeWidth={1.5} />
-                      <span className="block text-5xl font-black text-white tracking-tighter filter drop-shadow-lg">{currentLevel}</span>
+                    <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-white shadow-2xl relative z-10 animate-bounce" style={{ animationDuration: '3s' }}>
+                      <img
+                        src="/robotGif.gif"
+                        alt="Besti"
+                        className="w-full h-full object-cover scale-125 mix-blend-screen filter brightness-110 contrast-110"
+                      />
                     </div>
                   </div>
                 </div>
 
-                <h2 className={`text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${medal.gradient} mt-4 uppercase tracking-wide filter drop-shadow-sm`}>
-                  {medal.name}
-                </h2>
-                <p className="text-gray-500 font-medium">Nivel Actual</p>
-              </div>
-
-              {/* Benefits Section */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <Sparkles size={16} className="text-indigo-500" />
-                  Beneficios Desbloqueados
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {['❤️', '🔥', ...(currentLevel >= 2 ? ['😜'] : []), ...(currentLevel >= 3 ? ['💪'] : []), ...(currentLevel >= 4 ? ['🎉'] : []), ...(currentLevel >= 5 ? ['🐶'] : [])].slice(0, 8).map((emoji, i) => (
-                    <div key={i} className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center text-2xl animate-pulse">
-                      {emoji}
+                {/* 2. Smaller Medal (Below Robot) */}
+                <div className="text-center mb-6 relative -mt-6">
+                  <div className="relative inline-block">
+                    {/* Rotating rays background */}
+                    <div className="absolute inset-0 animate-spin-slow opacity-20" style={{ animationDuration: '10s' }}>
+                      <div className={`w-full h-full bg-gradient-to-r ${medal.gradient} blur-xl rounded-full scale-110`}></div>
                     </div>
-                  ))}
-                  {currentLevel < 10 && (
-                    <div className="col-span-4 mt-2 text-center text-xs text-gray-400 font-medium bg-gray-50 py-2 rounded-lg">
-                      ¡Sube de nivel para más emojis! 🚀
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              {/* XP Progress Card */}
-              <div
-                className="rounded-2xl p-4 mb-4"
-                style={{
-                  background: `linear-gradient(135deg, ${trophyColor}15, ${trophyColor}05)`
-                }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <Sparkles size={16} className="text-yellow-500 animate-pulse" />
-                    Experiencia Total
-                  </span>
-                  <span
-                    className="text-2xl font-black"
-                    style={{ color: trophyColor }}
-                  >
-                    {currentXP.toLocaleString()}
-                  </span>
-                </div>
-
-                {/* Animated Progress Bar */}
-                <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse"
-                    style={{ animationDuration: '1.5s' }}
-                  />
-                  <div
-                    className="relative h-full rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${((currentXP % 1000) / 1000) * 100}%`,
-                      background: `linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #d946ef)`
-                    }}
-                  >
-                    {/* Shimmer effect */}
+                    {/* The Medal (Smaller) */}
                     <div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"
-                      style={{ animationDuration: '2s' }}
-                    />
+                      className={`relative w-24 h-24 mx-auto rounded-full bg-gradient-to-br ${medal.gradient} flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.3)] mb-2 animate-pulse`}
+                      style={{ animationDuration: '4s' }}
+                    >
+                      <div className="absolute inset-1 rounded-full border-2 border-white/40 border-dashed animate-spin-slow" style={{ animationDuration: '15s' }}></div>
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/40 via-transparent to-black/10 pointer-events-none"></div>
+
+                      <div className="text-center z-10 drop-shadow-md transform scale-90">
+                        <Trophy size={40} className="text-white mx-auto mb-0 filter drop-shadow-lg" strokeWidth={2} />
+                        <span className="block text-2xl font-black text-white tracking-tighter filter drop-shadow-lg leading-none">{currentLevel}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h2 className={`text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r ${medal.gradient} mt-2 uppercase tracking-wide filter drop-shadow-sm`}>
+                    {medal.name}
+                  </h2>
+                </div>
+
+                {/* Benefits Section */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 border border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <Sparkles size={16} className="text-indigo-500" />
+                    Beneficios Desbloqueados
+                  </h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['❤️', '🔥', ...(currentLevel >= 2 ? ['😜'] : []), ...(currentLevel >= 3 ? ['💪'] : []), ...(currentLevel >= 4 ? ['🎉'] : []), ...(currentLevel >= 5 ? ['🐶'] : [])].slice(0, 8).map((emoji, i) => (
+                      <div key={i} className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center text-2xl animate-pulse">
+                        {emoji}
+                      </div>
+                    ))}
+                    {currentLevel < 10 && (
+                      <div className="col-span-4 mt-2 text-center text-xs text-gray-400 font-medium bg-gray-50 py-2 rounded-lg">
+                        ¡Sube de nivel para más emojis! 🚀
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex justify-between mt-2 text-xs font-medium text-gray-500">
-                  <span>{currentXP % 1000} XP</span>
-                  <span className="flex items-center gap-1">
-                    🎯 {1000 - (currentXP % 1000)} para nivel {currentLevel + 1}
-                  </span>
-                </div>
-              </div>
+                {/* XP Progress Card */}
+                <div
+                  className="rounded-2xl p-4 mb-4"
+                  style={{
+                    background: `linear-gradient(135deg, ${trophyColor}15, ${trophyColor}05)`
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                      <Sparkles size={16} className="text-yellow-500 animate-pulse" />
+                      Experiencia Total
+                    </span>
+                    <span
+                      className="text-2xl font-black"
+                      style={{ color: trophyColor }}
+                    >
+                      {currentXP.toLocaleString()}
+                    </span>
+                  </div>
 
-              {/* How to Earn - Fun Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
-                  <div className="text-3xl mb-1">📱</div>
-                  <p className="text-xl font-black">+100</p>
-                  <p className="text-xs opacity-90">Abrir app</p>
-                </div>
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
-                  <div className="text-3xl mb-1">📸</div>
-                  <p className="text-xl font-black">+300</p>
-                  <p className="text-xs opacity-90">Crear post</p>
-                </div>
-              </div>
+                  {/* Animated Progress Bar */}
+                  <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse"
+                      style={{ animationDuration: '1.5s' }}
+                    />
+                    <div
+                      className="relative h-full rounded-full transition-all duration-1000"
+                      style={{
+                        width: `${((currentXP % 1000) / 1000) * 100}%`,
+                        background: `linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #d946ef)`
+                      }}
+                    >
+                      {/* Shimmer effect */}
+                      <div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"
+                        style={{ animationDuration: '2s' }}
+                      />
+                    </div>
+                  </div>
 
-              {/* Fun tip */}
-              <p className="text-center text-xs text-gray-400 mt-4 animate-pulse">
-                ✨ ¡Sigue así para llegar a Diamante! ✨
-              </p>
+                  <div className="flex justify-between mt-2 text-xs font-medium text-gray-500">
+                    <span>{currentXP % 1000} XP</span>
+                    <span className="flex items-center gap-1">
+                      🎯 {1000 - (currentXP % 1000)} para nivel {currentLevel + 1}
+                    </span>
+                  </div>
+                </div>
+
+                {/* How to Earn - Fun Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
+                    <div className="text-3xl mb-1">📱</div>
+                    <p className="text-xl font-black">+100</p>
+                    <p className="text-xs opacity-90">Abrir app</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white text-center transform hover:scale-105 transition-transform shadow-lg">
+                    <div className="text-3xl mb-1">📸</div>
+                    <p className="text-xl font-black">+300</p>
+                    <p className="text-xs opacity-90">Crear post</p>
+                  </div>
+                </div>
+
+                {/* Fun tip */}
+                <p className="text-center text-xs text-gray-400 mt-4 animate-pulse">
+                  ✨ ¡Sigue así para llegar a Diamante! ✨
+                </p>
+              </div>
             </div>
-          </div>
-        )
+            )
       }
 
-      {/* Main Content Area */}
-      <main className="h-full w-full overflow-auto">
-        <React.Suspense fallback={
-          <div className="w-full h-full flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-          </div>
-        }>
-          {renderContent()}
-        </React.Suspense>
-      </main>
+            {/* Main Content Area */}
+            <main className="h-full w-full overflow-auto">
+              <React.Suspense fallback={
+                <div className="w-full h-full flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                </div>
+              }>
+                {renderContent()}
+              </React.Suspense>
+            </main>
 
-      {/* Full Screen Camera Overlay */}
-      {
-        showCamera && (
-          <React.Suspense fallback={<div className="fixed inset-0 bg-black z-50 flex items-center justify-center"><Loader2 className="text-white animate-spin" /></div>}>
-            <CameraView
-              onClose={() => window.history.back()}
-            />
-          </React.Suspense>
-        )
-      }
+            {/* Full Screen Camera Overlay */}
+            {
+              showCamera && (
+                <React.Suspense fallback={<div className="fixed inset-0 bg-black z-50 flex items-center justify-center"><Loader2 className="text-white animate-spin" /></div>}>
+                  <CameraView
+                    onClose={() => window.history.back()}
+                  />
+                </React.Suspense>
+              )
+            }
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-20 pb-4 z-40 flex justify-around items-center px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+            {/* Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-20 pb-4 z-40 flex justify-around items-center px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
 
-        {/* Button 1: Exit to Landing Page */}
-        <button
-          onClick={handleLogout}
-          className="p-3 rounded-2xl text-red-400 hover:bg-red-50 hover:text-red-500 transition-all"
-        >
-          <LogOut size={26} />
-        </button>
+              {/* Button 1: Exit to Landing Page */}
+              <button
+                onClick={handleLogout}
+                className="p-3 rounded-2xl text-red-400 hover:bg-red-50 hover:text-red-500 transition-all"
+              >
+                <LogOut size={26} />
+              </button>
 
-        {/* Button 2: Go to Feed */}
-        <NavButton
-          active={activeTab === AppTab.HOME && !viewingUserId}
-          onClick={() => handleTabChange(AppTab.HOME)}
-          icon={<Home size={26} />}
-        />
+              {/* Button 2: Go to Feed */}
+              <NavButton
+                active={activeTab === AppTab.HOME && !viewingUserId}
+                onClick={() => handleTabChange(AppTab.HOME)}
+                icon={<Home size={26} />}
+              />
 
-        {/* Button 3: Floating Camera (Center) */}
-        <div className="relative -top-6">
-          <button
-            onClick={openCamera}
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-transform"
-          >
-            <Camera size={32} />
-          </button>
-        </div>
+              {/* Button 3: Floating Camera (Center) */}
+              <div className="relative -top-6">
+                <button
+                  onClick={openCamera}
+                  className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-transform"
+                >
+                  <Camera size={32} />
+                </button>
+              </div>
 
-        {/* Button 4: Chat */}
-        <NavButton
-          active={activeTab === AppTab.CHAT}
-          onClick={() => handleTabChange(AppTab.CHAT)}
-          icon={<MessageCircle size={26} />}
-        />
+              {/* Button 4: Chat */}
+              <NavButton
+                active={activeTab === AppTab.CHAT}
+                onClick={() => handleTabChange(AppTab.CHAT)}
+                icon={<MessageCircle size={26} />}
+              />
 
-        {/* Button: Agenda */}
-        <NavButton
-          active={activeTab === AppTab.AGENDA}
-          onClick={() => handleTabChange(AppTab.AGENDA)}
-          icon={<Calendar size={26} />}
-        />
+              {/* Button: Agenda */}
+              <NavButton
+                active={activeTab === AppTab.AGENDA}
+                onClick={() => handleTabChange(AppTab.AGENDA)}
+                icon={<Calendar size={26} />}
+              />
 
-        {/* Button 5: Profile */}
-        <NavButton
-          active={activeTab === AppTab.PROFILE}
-          onClick={() => handleTabChange(AppTab.PROFILE)}
-          icon={<UserIcon size={26} />}
-        />
-      </nav>
-    </div >
-  );
+              {/* Button 5: Profile */}
+              <NavButton
+                active={activeTab === AppTab.PROFILE}
+                onClick={() => handleTabChange(AppTab.PROFILE)}
+                icon={<UserIcon size={26} />}
+              />
+            </nav>
+          </div >
+        );
 };
-
-interface NavButtonProps {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-}
-
-const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon }) => (
-  <button
-    onClick={onClick}
-    className={`p-3 rounded-2xl transition-all duration-300 ${active ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}
-  >
-    {icon}
-  </button>
-);
 
 // Wrap with StoreProvider
 const App: React.FC = () => {
   return (
-    <StoreProvider>
-      <AppContent />
-    </StoreProvider>
-  );
+      <StoreProvider>
+        <AppContent />
+      </StoreProvider>
+      );
 };
 
-export default App;
+      export default App;
