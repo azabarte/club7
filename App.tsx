@@ -12,22 +12,7 @@ const UserProfile = React.lazy(() => import('./components/UserProfile'));
 import { AppTab } from './types';
 import { Home, MessageCircle, Camera, User as UserIcon, LogOut, Trophy, Loader2, Calendar, X, Sparkles } from 'lucide-react';
 
-// Trophy color based on level
-const getTrophyColor = (level: number) => {
-  if (level >= 10) return '#B9F2FF'; // Diamond
-  if (level >= 6) return '#E5E4E2'; // Platinum
-  if (level >= 4) return '#FFD700'; // Gold
-  if (level >= 2) return '#C0C0C0'; // Silver
-  return '#CD7F32'; // Bronze
-};
 
-const getLevelName = (level: number) => {
-  if (level >= 10) return 'Diamante 💎';
-  if (level >= 6) return 'Platino ⚪';
-  if (level >= 4) return 'Oro 🥇';
-  if (level >= 2) return 'Plata 🥈';
-  return 'Bronce 🥉';
-};
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, currentUser, members, posts, logout } = useStore();
@@ -107,7 +92,17 @@ const AppContent: React.FC = () => {
 
   const currentLevel = currentUser?.level || 1;
   const currentXP = currentUser?.xp || 0;
-  const trophyColor = getTrophyColor(currentLevel);
+
+  const getMedalTier = (level: number) => {
+    if (level >= 20) return { name: 'Diamante', color: '#b9f2ff', gradient: 'from-cyan-400 to-blue-600', shadow: 'shadow-cyan-500/50' };
+    if (level >= 10) return { name: 'Oro', color: '#ffd700', gradient: 'from-yellow-300 to-yellow-600', shadow: 'shadow-yellow-500/50' };
+    if (level >= 5) return { name: 'Plata', color: '#c0c0c0', gradient: 'from-gray-300 to-gray-500', shadow: 'shadow-gray-500/50' };
+    return { name: 'Bronce', color: '#cd7f32', gradient: 'from-orange-400 to-orange-700', shadow: 'shadow-orange-500/50' };
+  };
+
+  const medal = getMedalTier(currentLevel);
+  // kept for backward compat if needed, but we mostly use medal now
+  const trophyColor = medal.color;
 
 
   const renderContent = () => {
@@ -175,13 +170,13 @@ const AppContent: React.FC = () => {
                 </span>
               </div>
             )}
-            {/* Level Badge - Upgraded & Animated */}
+            {/* Level Badge - Compact & Clean */}
             <div className="relative">
               <button
                 onClick={() => setShowXPModal(true)}
-                className="relative w-16 h-16 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                className="relative w-14 h-14 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
               >
-                <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                <div className="w-14 h-14 rounded-full bg-gray-900/90 flex items-center justify-center overflow-hidden border border-white/20 shadow-md">
                   <img
                     src="/robotGif.gif"
                     alt="Besti"
@@ -189,19 +184,13 @@ const AppContent: React.FC = () => {
                   />
                 </div>
 
-                {/* Giant Animated Level Medal */}
+                {/* Static Level Indicator */}
                 <div
-                  className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg animate-bounce z-20"
-                  style={{
-                    background: 'linear-gradient(135deg, #FFD700, #FDB931, #F4A460)',
-                    boxShadow: '0 0 10px rgba(255, 215, 0, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.5)'
-                  }}
+                  className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm z-10 bg-gradient-to-br ${medal.gradient}`}
                 >
-                  <span className="text-sm font-black text-amber-900 leading-none drop-shadow-sm">
+                  <span className="text-[10px] font-black text-white leading-none shadow-black/20 drop-shadow-sm">
                     {currentLevel}
                   </span>
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/40 to-transparent pointer-events-none" />
                 </div>
               </button>
             </div>
@@ -262,51 +251,53 @@ const AppContent: React.FC = () => {
                 <X size={18} className="text-gray-400 group-hover:text-red-500" />
               </button>
 
-              {/* Giant Besti Robot */}
-              <div className="text-center mb-4">
-                <div
-                  className="inline-flex items-center justify-center w-40 h-40 mb-3 relative"
-                  style={{
-                    background: 'transparent',
-                    boxShadow: 'none'
-                  }}
-                >
-                  {/* Floating stars around Besti */}
-                  <div className="absolute -top-2 left-1/2 text-xl animate-bounce" style={{ animationDuration: '1.5s' }}>⭐</div>
-                  <div className="absolute top-1/4 -left-2 text-lg animate-ping" style={{ animationDuration: '2s' }}>✨</div>
-                  <div className="absolute top-1/4 -right-2 text-lg animate-pulse">💫</div>
-                  <div className="absolute -bottom-1 left-1/4 text-sm animate-bounce" style={{ animationDuration: '2s' }}>🌟</div>
-                  <div className="absolute -bottom-1 right-1/4 text-sm animate-ping" style={{ animationDuration: '3s' }}>✨</div>
+              {/* HUGE Medal Display */}
+              <div className="text-center mb-6 relative">
+                <div className="relative inline-block">
+                  {/* Rotating rays background */}
+                  <div className="absolute inset-0 animate-spin-slow opacity-20" style={{ animationDuration: '10s' }}>
+                    <div className={`w-full h-full bg-gradient-to-r ${medal.gradient} blur-xl rounded-full scale-150`}></div>
+                  </div>
 
-                  {/* Besti with fun animation */}
-                  {/* Besti with fun animation */}
-                  <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center overflow-hidden border-4 border-white/20 shadow-2xl relative z-10">
-                    <img
-                      src="/robotGif.gif"
-                      alt="Besti"
-                      className="w-full h-full object-cover scale-110"
-                      style={{
-                        mixBlendMode: 'screen',
-                        filter: 'brightness(1.1) contrast(1.1)'
-                      }}
-                    />
+                  {/* The Giant Medal */}
+                  <div
+                    className={`relative w-48 h-48 mx-auto rounded-full bg-gradient-to-br ${medal.gradient} flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.2)] mb-2 animate-bounce`}
+                    style={{ animationDuration: '3s' }}
+                  >
+                    <div className="absolute inset-2 rounded-full border-4 border-white/30 border-dashed animate-spin-slow" style={{ animationDuration: '20s' }}></div>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/40 via-transparent to-black/10 pointer-events-none"></div>
+
+                    <div className="text-center z-10 drop-shadow-md">
+                      <Trophy size={80} className="text-white mx-auto mb-1 filter drop-shadow-lg" strokeWidth={1.5} />
+                      <span className="block text-5xl font-black text-white tracking-tighter filter drop-shadow-lg">{currentLevel}</span>
+                    </div>
                   </div>
                 </div>
-                <h2
-                  className="text-4xl font-black bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage: `linear-gradient(135deg, ${trophyColor}, #6366f1, #8b5cf6)`,
-                    WebkitBackgroundClip: 'text'
-                  }}
-                >
-                  Nivel {currentLevel}
+
+                <h2 className={`text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${medal.gradient} mt-4 uppercase tracking-wide filter drop-shadow-sm`}>
+                  {medal.name}
                 </h2>
-                <p
-                  className="text-lg font-bold mt-1"
-                  style={{ color: trophyColor }}
-                >
-                  {getLevelName(currentLevel)}
-                </p>
+                <p className="text-gray-500 font-medium">Nivel Actual</p>
+              </div>
+
+              {/* Benefits Section */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <Sparkles size={16} className="text-indigo-500" />
+                  Beneficios Desbloqueados
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {['❤️', '🔥', ...(currentLevel >= 2 ? ['😜'] : []), ...(currentLevel >= 3 ? ['💪'] : []), ...(currentLevel >= 4 ? ['🎉'] : []), ...(currentLevel >= 5 ? ['🐶'] : [])].slice(0, 8).map((emoji, i) => (
+                    <div key={i} className="aspect-square rounded-xl bg-gray-50 flex items-center justify-center text-2xl animate-pulse">
+                      {emoji}
+                    </div>
+                  ))}
+                  {currentLevel < 10 && (
+                    <div className="col-span-4 mt-2 text-center text-xs text-gray-400 font-medium bg-gray-50 py-2 rounded-lg">
+                      ¡Sube de nivel para más emojis! 🚀
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* XP Progress Card */}
