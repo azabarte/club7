@@ -12,7 +12,7 @@ interface FeedViewProps {
 const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const { members, currentUser, postReactions, postComments, toggleReaction, addCommentAction, deleteCommentAction, isLoading, deletePostAction, refreshData } = useStore();
   const [menuOpenForPost, setMenuOpenForPost] = useState<string | null>(null);
-  const [emojiPickerOpenFor, setEmojiPickerOpenFor] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [showReactorsFor, setShowReactorsFor] = useState<string | null>(null);
   const [showCommentsFor, setShowCommentsFor] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
@@ -46,7 +46,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     return `Hace ${diffDays}d`;
   };
 
-  const handleReaction = async (postId: string, emoji: string) => {
+  const addReaction = async (postId: string, emoji: string) => {
     // Check if user has reached 3 reactions on this post
     const reactions = postReactions[postId] || [];
     const userReactions = reactions.filter(r => r.user_id === currentUser?.id);
@@ -59,7 +59,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     }
 
     await toggleReaction(postId, emoji);
-    setEmojiPickerOpenFor(null);
+    setShowReactionPicker(null);
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -145,8 +145,20 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   if (userLevel >= 9) availableEmojis = [...availableEmojis, ...level9Emojis];
   if (userLevel >= 10) availableEmojis = [...availableEmojis, ...level10Emojis];
 
-  // Quick emojis are always the base ones
-  const quickEmojis = level1Emojis;
+  // Determine animation class based on emoji category
+  const getEmojiAnimation = (emoji: string) => {
+    if (level9Emojis.includes(emoji)) return 'animate-emoji-heartbeat';
+    if (level2Emojis.includes(emoji)) return 'animate-emoji-wiggle';
+    if (level4Emojis.includes(emoji)) return 'animate-emoji-party';
+    if (level6Emojis.includes(emoji) || level10Emojis.includes(emoji)) return 'animate-emoji-spin';
+    if (level5Emojis.includes(emoji) || level8Emojis.includes(emoji)) return 'animate-emoji-bounce';
+    if (level10Emojis.includes(emoji)) return 'animate-emoji-float';
+    return 'hover:scale-125 transition-transform';
+  };
+
+  // Quick emojis: Show a mix of unlocked emojis (focus on highest level + essentials)
+  // Instead of just level 1, we show the last 4 unlocked + first 4 essentials
+  const quickEmojis = [...availableEmojis].reverse().slice(0, 5).concat(level1Emojis.slice(0, 3));
 
   if (isLoading) {
     return (
@@ -358,47 +370,59 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
               <div className="flex gap-2 mb-3 flex-wrap scrollbar-hide overflow-x-auto">
                 {quickEmojis.map(emoji => {
                   const count = reactionCounts[emoji] || 0;
-                  const isActive = reactions.some(r => r.user_id === currentUser?.id && r.emoji === emoji);
+                  const isActive = reactions.some((r: any) => r.user_id === currentUser?.id && r.emoji === emoji);
                   return (
                     <button
                       key={emoji}
-                      onClick={() => handleReaction(post.id, emoji)}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-full transition-all active:scale-95 ${isActive
-                        ? 'bg-indigo-100 border border-indigo-200 shadow-inner'
+                      onClick={() => addReaction(post.id, emoji)}
+                      className={`flex items-center gap-1 p-2 rounded-full transition-all active:scale-90 ${isActive
+                        ? 'bg-indigo-50 border border-indigo-100 shadow-sm transform scale-105'
                         : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                         }`}
                     >
-                      <span className={`text-xl ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>{emoji}</span>
+                      <span className={`text-2xl ${getEmojiAnimation(emoji)}`}>{emoji}</span>
                       {count > 0 && (
-                        <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}>
-                          {count}
-                        </span>
+                        <span className={`text-xs font-bold ml-1 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>{count}</span>
                       )}
                     </button>
                   );
                 })}
                 <button
-                  onClick={() => setEmojiPickerOpenFor(emojiPickerOpenFor === post.id ? null : post.id)}
-                  className="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 flex items-center justify-center"
+                  onClick={() => setShowReactionPicker(showReactionPicker === post.id ? null : post.id)}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors ml-1"
                 >
-                  <Smile size={18} />
+                  <span className="text-xl text-gray-500">+</span>
                 </button>
               </div>
 
-              {/* Extended emoji picker */}
-              {emojiPickerOpenFor === post.id && (
-                <div className="bg-white rounded-2xl p-3 mb-3 border border-gray-100 shadow-lg animate-in fade-in slide-in-from-top-2">
-                  <div className="flex flex-wrap gap-2 justify-between">
-                    {availableEmojis.map((emoji, i) => (
+              {/* Expanded Reaction Picker */}
+              {showReactionPicker === post.id && (
+                <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 mb-4 shadow-xl border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-bold text-gray-800 text-sm">Elige tu reacción</h4>
+                    <button onClick={() => setShowReactionPicker(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                      <X size={14} className="text-gray-400" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto no-scrollbar p-1">
+                    {availableEmojis.map((emoji) => (
                       <button
-                        key={i}
-                        onClick={() => handleReaction(post.id, emoji)}
-                        className="w-8 h-8 flex items-center justify-center text-2xl hover:scale-125 transition-transform animate-pulse"
+                        key={emoji}
+                        onClick={() => {
+                          addReaction(post.id, emoji);
+                          setShowReactionPicker(null);
+                        }}
+                        className={`text-2xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-gray-50 ${getEmojiAnimation(emoji)}`}
                       >
                         {emoji}
                       </button>
                     ))}
                   </div>
+                  {currentUser?.level < 10 && (
+                    <div className="mt-3 text-center">
+                      <p className="text-[10px] text-indigo-400 font-medium">✨ Sube de nivel para desbloquear más reacciones ✨</p>
+                    </div>
+                  )}
                 </div>
               )}
 
