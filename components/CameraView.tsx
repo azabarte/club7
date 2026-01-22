@@ -112,11 +112,30 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-      setStep('edit');
-      stopCamera();
+      if (file.type.startsWith('video')) {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > MAX_RECORDING_SECONDS) {
+            alert(`El video no puede durar más de ${MAX_RECORDING_SECONDS} segundos.`);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+          }
+          setSelectedFile(file);
+          const url = URL.createObjectURL(file);
+          setPreview(url);
+          setStep('edit');
+          stopCamera();
+        };
+        video.src = URL.createObjectURL(file);
+      } else {
+        setSelectedFile(file);
+        const url = URL.createObjectURL(file);
+        setPreview(url);
+        setStep('edit');
+        stopCamera();
+      }
     }
   };
 
