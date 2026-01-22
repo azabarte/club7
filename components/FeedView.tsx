@@ -95,29 +95,53 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
     return () => observer.disconnect();
   }, [posts]);
 
-  // Level-based emoji unlocks
+  // Level-based emoji unlocks (Expanded & Fun)
   const userLevel = currentUser?.level || 1;
 
-  // Base emojis available to everyone (Level 1-2)
-  const baseEmojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '💀', '🙌'];
+  // Level 1: Essentials
+  const level1Emojis = ['❤️', '🔥', '😍', '😂', '🤩', '👏', '🙌', '👍'];
 
-  // Level 3-4: More emojis
-  const level3Emojis = ['💕', '💖', '💗', '💜', '💙', '🧡', '💚', '⚡', '✨', '💥', '🌟', '⭐', '🎆', '🎇'];
+  // Level 2: Fun (Faces)
+  const level2Emojis = ['😜', '🤪', '🥳', '😎', '🤓', '🤠', '🤡', '👻'];
 
-  // Level 5-6: Extended set
-  const level5Emojis = ['🥰', '😘', '🤗', '🤣', '😭', '🥹', '😎', '🥳', '🤯', '😱', '🙃', '😏', '🤪', '💪', '🤝', '👍'];
+  // Level 3: Actions & Gestures
+  const level3Emojis = ['👋', '✌️', '🤞', '🤟', '🤝', '💪', '🙏', '👀'];
 
-  // Level 7+: Premium emojis
-  const level7Emojis = ['🦋', '🐱', '🐶', '🦄', '🐻', '🐼', '🦊', '🐸', '🍕', '🌮', '🍔', '🍩', '🍦', '🎂', '🍿', '☕', '👎', '🤟', '✌️', '👀', '💯', '🎯', '🏆', '🎨', '🎵', '📸'];
+  // Level 4: Party & Celebration
+  const level4Emojis = ['🎉', '🎊', '🎈', '🍾', '🥂', '🍻', '🎁', '🎂'];
+
+  // Level 5: Animals
+  const level5Emojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+
+  // Level 6: Fantasy & Magic
+  const level6Emojis = ['🦄', '🐲', '🧚', '🧜', '🧞', '🔮', '✨', '🌈'];
+
+  // Level 7: Food & Drink
+  const level7Emojis = ['🍕', '🍔', '🍟', '🌮', '🍩', '🍪', '🍦', '🍹'];
+
+  // Level 8: Activity & Sports
+  const level8Emojis = ['⚽', '🏀', '🏈', '🎾', '🎸', '🎨', '🎮', '🚀'];
+
+  // Level 9: Hearts & Love
+  const level9Emojis = ['💖', '💗', '💓', '💞', '💕', '💘', '💝', '💟'];
+
+  // Level 10: Legendary (Premium/Animated-feel)
+  const level10Emojis = ['👑', '💎', '💍', '🏆', '💯', '💥', '💣', '🪐'];
 
   // Build available emojis based on level
-  let availableEmojis = [...baseEmojis];
+  let availableEmojis = [...level1Emojis];
+  if (userLevel >= 2) availableEmojis = [...availableEmojis, ...level2Emojis];
   if (userLevel >= 3) availableEmojis = [...availableEmojis, ...level3Emojis];
+  if (userLevel >= 4) availableEmojis = [...availableEmojis, ...level4Emojis];
   if (userLevel >= 5) availableEmojis = [...availableEmojis, ...level5Emojis];
+  if (userLevel >= 6) availableEmojis = [...availableEmojis, ...level6Emojis];
   if (userLevel >= 7) availableEmojis = [...availableEmojis, ...level7Emojis];
+  if (userLevel >= 8) availableEmojis = [...availableEmojis, ...level8Emojis];
+  if (userLevel >= 9) availableEmojis = [...availableEmojis, ...level9Emojis];
+  if (userLevel >= 10) availableEmojis = [...availableEmojis, ...level10Emojis];
 
   // Quick emojis are always the base ones
-  const quickEmojis = baseEmojis;
+  const quickEmojis = level1Emojis;
 
   if (isLoading) {
     return (
@@ -220,7 +244,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
         const totalReactions = reactions.length;
 
         // Get reactors with their info
-        const reactorUsers = reactions.map(r => getMember(r.user_id)).filter((m): m is NonNullable<typeof m> => Boolean(m));
+        const reactorUsers = reactions.map(r => getMember(r.user_id)).filter((m): m is NonNullable<ReturnType<typeof getMember>> => Boolean(m));
         const uniqueReactorUsers = [...new Map(reactorUsers.map(u => [u.id, u])).values()];
 
         return (
