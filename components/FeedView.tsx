@@ -311,78 +311,152 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
               </div>
             </div>
 
-            {/* Comments section */}
-            <div className="border-t border-gray-100 pt-3 mt-2">
-              {/* Show comments count / toggle */}
-              <button
-                onClick={() => setShowCommentsFor(showCommentsFor === post.id ? null : post.id)}
-                className="text-gray-500 text-sm font-medium mb-2 flex items-center gap-1"
-              >
-                <MessageCircle size={16} />
-                {comments.length > 0 ? `Ver ${comments.length} comentario${comments.length > 1 ? 's' : ''}` : 'Comentar'}
-              </button>
+            {/* Reactions & Comments Section (Always visible) */}
+            <div className="p-4 pt-2">
 
-              {/* Comments list */}
-              {showCommentsFor === post.id && (
-                <div className="space-y-3 mb-3">
-                  {comments.map((comment) => {
-                    const commentAuthor = getMember(comment.user_id);
-                    const canDelete = currentUser?.is_admin || comment.user_id === currentUser?.id;
-                    return (
-                      <div key={comment.id} className="flex gap-2 group">
-                        <img
-                          src={commentAuthor?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${commentAuthor?.name || 'user'}`}
-                          className="w-8 h-8 rounded-full flex-shrink-0"
-                          alt=""
-                        />
-                        <div className="flex-1 bg-gray-50 rounded-2xl px-3 py-2">
-                          <span className="font-bold text-gray-800 text-sm">{commentAuthor?.name || 'Usuario'}</span>
-                          <p className="text-black text-sm">{comment.content}</p>
-                          <span className="text-xs text-gray-400">{formatTimeAgo(comment.created_at)}</span>
-                        </div>
-                        {canDelete && (
-                          <button
-                            onClick={async () => {
-                              if (window.confirm('¿Eliminar este comentario?')) {
-                                await deleteCommentAction(comment.id, post.id);
-                              }
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all self-center p-1"
-                            title="Eliminar comentario"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+              {/* Reaction Buttons */}
+              <div className="flex gap-2 mb-3 flex-wrap scrollbar-hide overflow-x-auto">
+                {quickEmojis.map(emoji => {
+                  const count = reactionCounts[emoji] || 0;
+                  const isActive = reactions.some(r => r.user_id === currentUser?.id && r.emoji === emoji);
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaction(post.id, emoji)}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-full transition-all active:scale-95 ${isActive
+                        ? 'bg-indigo-100 border border-indigo-200 shadow-inner'
+                        : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                        }`}
+                    >
+                      <span className={`text-xl ${isActive ? 'animate-bounce' : 'group-hover:animate-pulse'}`}>{emoji}</span>
+                      {count > 0 && (
+                        <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setEmojiPickerOpenFor(emojiPickerOpenFor === post.id ? null : post.id)}
+                  className="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 flex items-center justify-center"
+                >
+                  <Smile size={18} />
+                </button>
+              </div>
 
-                  {/* Add comment input */}
-                  <div className="flex gap-2 items-center">
-                    <img
-                      src={currentUser?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser?.name || 'me'}`}
-                      className="w-8 h-8 rounded-full flex-shrink-0"
-                      alt=""
-                    />
-                    <div className="flex-1 flex gap-2 bg-gray-50 rounded-full px-3 py-2">
-                      <input
-                        type="text"
-                        placeholder="Añade un comentario..."
-                        value={commentText[post.id] || ''}
-                        onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                        className="flex-1 bg-transparent outline-none text-sm text-black placeholder-gray-400"
-                      />
+              {/* Extended emoji picker */}
+              {emojiPickerOpenFor === post.id && (
+                <div className="bg-white rounded-2xl p-3 mb-3 border border-gray-100 shadow-lg animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-wrap gap-2 justify-between">
+                    {availableEmojis.map((emoji, i) => (
                       <button
-                        onClick={() => handleAddComment(post.id)}
-                        className="text-indigo-500 hover:text-indigo-600"
+                        key={i}
+                        onClick={() => handleReaction(post.id, emoji)}
+                        className="w-8 h-8 flex items-center justify-center text-2xl hover:scale-125 transition-transform animate-pulse"
                       >
-                        <Send size={18} />
+                        {emoji}
                       </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
               )}
+
+              {/* Who Reacted Summary (Expanded) */}
+              {totalReactions > 0 && (
+                <div className="mb-4 bg-indigo-50/50 p-3 rounded-2xl">
+                  <div className="flex -space-x-2 mb-2 overflow-hidden py-1">
+                    {uniqueReactorUsers.map((member) => {
+                      if (!member) return null;
+                      return (
+                        <img
+                          key={member.id}
+                          src={member.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${member.name}`}
+                          className="w-8 h-8 rounded-full border-2 border-white"
+                          alt={member.name}
+                          title={member.name}
+                        />
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    <span className="font-bold text-indigo-900">
+                      {reactionCounts[uniqueEmojis[0]]} {uniqueEmojis[0]}
+                    </span>
+                    {uniqueEmojis.length > 1 && (
+                      <span> y otros {totalReactions - reactionCounts[uniqueEmojis[0]]} reaccionaron</span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {/* Comments List (Always Visible) */}
+              <div className="space-y-4 mb-4">
+                {comments.length === 0 ? (
+                  <p className="text-gray-400 text-sm italic ml-1">Sin comentarios aún. ¡Sé el primero!</p>
+                ) : (
+                  comments.map((comment) => {
+                    const commentAuthor = getMember(comment.user_id);
+                    const canDelete = currentUser?.is_admin || comment.user_id === currentUser?.id;
+                    return (
+                      <div key={comment.id} className="flex gap-3 group">
+                        <img
+                          src={commentAuthor?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${commentAuthor?.name || 'user'}`}
+                          className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
+                          alt=""
+                        />
+                        <div className="flex-1">
+                          <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-2 inline-block max-w-full">
+                            <span className="font-bold text-gray-900 text-sm block mb-0.5">{commentAuthor?.name || 'Usuario'}</span>
+                            <p className="text-gray-800 text-sm leading-relaxed">{comment.content}</p>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 ml-1">
+                            <span className="text-[10px] text-gray-400 font-medium">{formatTimeAgo(comment.created_at)}</span>
+                            {canDelete && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('¿Eliminar este comentario?')) {
+                                    await deleteCommentAction(comment.id, post.id);
+                                  }
+                                }}
+                                className="text-[10px] text-red-400 hover:text-red-600 font-medium"
+                              >
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Comment Input (Fixed at bottom of card) */}
+              <div className="flex gap-2 items-center mt-2">
+                <img
+                  src={currentUser?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser?.name || 'me'}`}
+                  className="w-8 h-8 rounded-full flex-shrink-0 border border-gray-200"
+                  alt=""
+                />
+                <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 focus-within:border-indigo-300 focus-within:bg-white transition-all shadow-sm">
+                  <input
+                    type="text"
+                    placeholder="Escribe un comentario..."
+                    value={commentText[post.id] || ''}
+                    onChange={(e) => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                    className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400"
+                  />
+                  <button
+                    onClick={() => handleAddComment(post.id)}
+                    disabled={!commentText[post.id]?.trim()}
+                    className="text-indigo-500 hover:text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed p-1 active:scale-90 transition-transform"
+                  >
+                    <Send size={16} fill="currentColor" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
