@@ -383,7 +383,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black relative">
             {previews.length > 0 && (
-              selectedFiles[0]?.type.startsWith('video') ? (
+              (selectedFiles.length > 0 && selectedFiles[0]?.type?.startsWith('video')) ? (
                 <video src={previews[currentPreviewIndex]} controls className="w-full h-full object-contain" />
               ) : (
                 <>
