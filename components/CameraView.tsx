@@ -158,10 +158,23 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    if (video.videoWidth) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+    // Limit max dimension to 1080px for faster uploads
+    const maxDimension = 1080;
+    let targetWidth = video.videoWidth;
+    let targetHeight = video.videoHeight;
+
+    if (targetWidth > maxDimension || targetHeight > maxDimension) {
+      if (targetWidth > targetHeight) {
+        targetHeight = Math.round((targetHeight / targetWidth) * maxDimension);
+        targetWidth = maxDimension;
+      } else {
+        targetWidth = Math.round((targetWidth / targetHeight) * maxDimension);
+        targetHeight = maxDimension;
+      }
     }
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -180,16 +193,17 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
+    // Use 0.75 quality for faster upload (still looks great)
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
         setSelectedFiles([file]);
-        setPreviews([canvas.toDataURL('image/jpeg')]);
+        setPreviews([canvas.toDataURL('image/jpeg', 0.75)]);
         setCurrentPreviewIndex(0);
         setStep('edit');
         stopCamera();
       }
-    }, 'image/jpeg', 0.95);
+    }, 'image/jpeg', 0.75);
   };
 
   const startRecording = () => {
