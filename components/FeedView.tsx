@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../lib/store';
 import { Post, Reaction, Comment } from '../lib/supabase';
 import { getOptimizedUrl } from '../lib/cloudinary';
-import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send, Zap } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Film, Loader2, Trash2, X, Smile, Send, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface FeedViewProps {
   posts: Post[];
@@ -19,6 +19,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const [expandedCaptions, setExpandedCaptions] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [visiblePosts, setVisiblePosts] = useState<Set<string>>(new Set());
+  const [carouselIndices, setCarouselIndices] = useState<Record<string, number>>({});
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const postRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -367,7 +368,65 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                   </div>
                 </>
               ) : (
-                <img src={getOptimizedUrl(post.url, 800)} alt="Post" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                <>
+                  {/* Image Carousel */}
+                  {(() => {
+                    const mediaUrls = post.media_urls && post.media_urls.length > 0 ? post.media_urls : [post.url];
+                    const currentIndex = carouselIndices[post.id] || 0;
+                    const hasMultiple = mediaUrls.length > 1;
+
+                    return (
+                      <>
+                        <img
+                          src={getOptimizedUrl(mediaUrls[currentIndex], 800)}
+                          alt="Post"
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+
+                        {hasMultiple && (
+                          <>
+                            {/* Navigation arrows */}
+                            {currentIndex > 0 && (
+                              <button
+                                onClick={() => setCarouselIndices(prev => ({ ...prev, [post.id]: currentIndex - 1 }))}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white w-8 h-8 rounded-full flex items-center justify-center z-20 hover:bg-black/70 transition-colors"
+                              >
+                                <ChevronLeft size={20} />
+                              </button>
+                            )}
+                            {currentIndex < mediaUrls.length - 1 && (
+                              <button
+                                onClick={() => setCarouselIndices(prev => ({ ...prev, [post.id]: currentIndex + 1 }))}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white w-8 h-8 rounded-full flex items-center justify-center z-20 hover:bg-black/70 transition-colors"
+                              >
+                                <ChevronRight size={20} />
+                              </button>
+                            )}
+
+                            {/* Dots indicator */}
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                              {mediaUrls.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => setCarouselIndices(prev => ({ ...prev, [post.id]: idx }))}
+                                  className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-3' : 'bg-white/50 w-1.5'
+                                    }`}
+                                />
+                              ))}
+                            </div>
+
+                            {/* Image count badge */}
+                            <div className="absolute top-16 right-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full z-20">
+                              {currentIndex + 1}/{mediaUrls.length}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
               )}
 
               {/* Header Overlay (User Info) */}

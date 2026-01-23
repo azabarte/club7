@@ -67,7 +67,7 @@ interface StoreState {
     login: (password: string, memberId: string) => Promise<boolean>;
     logout: () => void;
     refreshData: (silent?: boolean) => Promise<void>;
-    addNewPost: (type: 'image' | 'video', file: File, caption: string, stickers?: string[]) => Promise<boolean>;
+    addNewPost: (type: 'image' | 'video', files: File[], caption: string, stickers?: string[]) => Promise<boolean>;
     addNewPostFromUrl: (type: 'image' | 'video', url: string, caption: string, stickers?: string[]) => Promise<boolean>;
     sendNewMessage: (type: 'text' | 'image' | 'audio' | 'sticker', content?: string, file?: File) => Promise<boolean>;
     completeMissionAction: (missionId: string, targetUserId?: string) => Promise<boolean>;
@@ -331,19 +331,25 @@ export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
 
     const addNewPost = async (
         type: 'image' | 'video',
-        file: File,
+        files: File[],
         caption: string,
         stickers?: string[]
     ): Promise<boolean> => {
-        if (!currentUser) return false;
+        if (!currentUser || files.length === 0) return false;
 
-        // Video limit removed! 
-        // We now use Cloudinary which supports much more storage.
+        // Upload all files to Cloudinary
+        const uploadedUrls: string[] = [];
+        for (const file of files) {
+            const url = await uploadToCloudinary(file, 'posts');
+            if (url) {
+                uploadedUrls.push(url);
+            }
+        }
 
-        const url = await uploadToCloudinary(file, 'posts');
-        if (!url) return false;
+        if (uploadedUrls.length === 0) return false;
 
-        const post = await createPost(currentUser.id, type, url, caption, stickers);
+        // Use first URL as main url, all URLs in media_urls
+        const post = await createPost(currentUser.id, type, uploadedUrls[0], caption, stickers, uploadedUrls);
         if (post) {
             setPosts(prev => [post, ...prev]);
 

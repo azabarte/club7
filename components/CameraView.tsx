@@ -36,8 +36,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const [caption, setCaption] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
   const [isUploading, setIsUploading] = useState(false);
@@ -110,32 +111,44 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith('video')) {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-          window.URL.revokeObjectURL(video.src);
-          if (video.duration > MAX_RECORDING_SECONDS) {
-            alert(`El video no puede durar más de ${MAX_RECORDING_SECONDS} segundos.`);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
-          }
-          setSelectedFile(file);
-          const url = URL.createObjectURL(file);
-          setPreview(url);
-          setStep('edit');
-          stopCamera();
-        };
-        video.src = URL.createObjectURL(file);
-      } else {
-        setSelectedFile(file);
-        const url = URL.createObjectURL(file);
-        setPreview(url);
+    const files = Array.from(event.target.files || []) as File[];
+    if (files.length === 0) return;
+
+    // Check for videos - only allow single video
+    const hasVideo = files.some((f: File) => f.type.startsWith('video'));
+    if (hasVideo && files.length > 1) {
+      alert('Solo puedes subir un video a la vez.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (hasVideo) {
+      const videoFile = files[0];
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        if (video.duration > MAX_RECORDING_SECONDS) {
+          alert(`El video no puede durar más de ${MAX_RECORDING_SECONDS} segundos.`);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        setSelectedFiles([videoFile]);
+        setPreviews([URL.createObjectURL(videoFile)]);
+        setCurrentPreviewIndex(0);
         setStep('edit');
         stopCamera();
-      }
+      };
+      video.src = URL.createObjectURL(videoFile);
+    } else {
+      // Multiple images (limit to 10)
+      const imageFiles = files.slice(0, 10);
+      const urls = imageFiles.map((f: File) => URL.createObjectURL(f));
+      setSelectedFiles(imageFiles);
+      setPreviews(urls);
+      setCurrentPreviewIndex(0);
+      setStep('edit');
+      stopCamera();
     }
   };
 
@@ -170,8 +183,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setSelectedFile(file);
-        setPreview(canvas.toDataURL('image/jpeg'));
+        setSelectedFiles([file]);
+        setPreviews([canvas.toDataURL('image/jpeg')]);
+        setCurrentPreviewIndex(0);
         setStep('edit');
         stopCamera();
       }
@@ -199,8 +213,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
         const blob = new Blob(chunksRef.current, { type: selectedMimeType || 'video/webm' });
         const extension = selectedMimeType.includes('mp4') ? 'mp4' : 'webm';
         const file = new File([blob], `video_${Date.now()}.${extension}`, { type: selectedMimeType || 'video/webm' });
-        setSelectedFile(file);
-        setPreview(URL.createObjectURL(blob));
+        setSelectedFiles([file]);
+        setPreviews([URL.createObjectURL(blob)]);
+        setCurrentPreviewIndex(0);
         setStep('edit');
         stopCamera();
       };
@@ -225,14 +240,14 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   };
 
   const handlePublish = async () => {
-    if (!preview) return;
+    if (previews.length === 0) return;
     setIsUploading(true);
     let success = false;
-    if (selectedFile) {
-      const type = selectedFile.type.startsWith('video') ? 'video' : 'image';
-      success = await addNewPost(type, selectedFile, caption, []);
-    } else {
-      success = await addNewPostFromUrl('image', preview, caption, []);
+    if (selectedFiles.length > 0) {
+      const type = selectedFiles[0].type.startsWith('video') ? 'video' : 'image';
+      success = await addNewPost(type, selectedFiles, caption, []);
+    } else if (previews.length > 0) {
+      success = await addNewPostFromUrl('image', previews[0], caption, []);
     }
     setIsUploading(false);
     if (success) onClose();
@@ -241,8 +256,9 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const handleBack = () => {
     if (step === 'edit') {
       setStep('capture');
-      setPreview(null);
-      setSelectedFile(null);
+      setPreviews([]);
+      setSelectedFiles([]);
+      setCurrentPreviewIndex(0);
       setCaption('');
       setSelectedFilter('none');
       startCamera();
@@ -262,7 +278,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileSelect} />
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" multiple onChange={handleFileSelect} />
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="relative flex-1 bg-gray-900 rounded-b-3xl overflow-hidden shadow-2xl">
@@ -332,12 +348,50 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-black">
-            {preview && (
-              selectedFile?.type.startsWith('video') ? (
-                <video src={preview} controls className="w-full h-full object-contain" />
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black relative">
+            {previews.length > 0 && (
+              selectedFiles[0]?.type.startsWith('video') ? (
+                <video src={previews[currentPreviewIndex]} controls className="w-full h-full object-contain" />
               ) : (
-                <img src={preview} alt="Preview" className="w-full h-full object-contain" style={{ filter: currentFilter?.css || 'none' }} />
+                <>
+                  <img src={previews[currentPreviewIndex]} alt="Preview" className="w-full h-full object-contain" style={{ filter: currentFilter?.css || 'none' }} />
+                  {/* Carousel indicators and navigation */}
+                  {previews.length > 1 && (
+                    <>
+                      {/* Dots indicator */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+                        {previews.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentPreviewIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-all ${idx === currentPreviewIndex ? 'bg-white w-4' : 'bg-white/50'}`}
+                          />
+                        ))}
+                      </div>
+                      {/* Navigation arrows */}
+                      {currentPreviewIndex > 0 && (
+                        <button
+                          onClick={() => setCurrentPreviewIndex(prev => prev - 1)}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white w-10 h-10 rounded-full flex items-center justify-center z-30"
+                        >
+                          ‹
+                        </button>
+                      )}
+                      {currentPreviewIndex < previews.length - 1 && (
+                        <button
+                          onClick={() => setCurrentPreviewIndex(prev => prev + 1)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white w-10 h-10 rounded-full flex items-center justify-center z-30"
+                        >
+                          ›
+                        </button>
+                      )}
+                      {/* Image count badge */}
+                      <div className="absolute top-16 right-4 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full z-30">
+                        {currentPreviewIndex + 1} / {previews.length}
+                      </div>
+                    </>
+                  )}
+                </>
               )
             )}
             <div className="absolute top-12 left-6 z-20">
@@ -430,13 +484,13 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
             ) : (
               <div className="grid grid-cols-2 gap-4 w-full">
                 <button
-                  onClick={() => { if (selectedFile && onCapture) { onCapture(selectedFile, 'use'); onClose(); } }}
+                  onClick={() => { if (selectedFiles[0] && onCapture) { onCapture(selectedFiles[0], 'use'); onClose(); } }}
                   className="bg-white/10 text-white py-4 rounded-2xl font-black border border-white/10 active:scale-95 transition-all uppercase tracking-widest text-sm"
                 >
                   Usar Directa
                 </button>
                 <button
-                  onClick={() => { if (selectedFile && onCapture) { onCapture(selectedFile, 'ai'); onClose(); } }}
+                  onClick={() => { if (selectedFiles[0] && onCapture) { onCapture(selectedFiles[0], 'ai'); onClose(); } }}
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all uppercase tracking-widest text-sm"
                 >
                   Mejorar con IA ✨

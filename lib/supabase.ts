@@ -32,6 +32,7 @@ export interface Post {
   user_id: string;
   type: 'image' | 'video';
   url: string;
+  media_urls?: string[]; // Array of URLs for multi-image posts
   caption: string | null;
   stickers: string[];
   created_at: string;
@@ -187,7 +188,8 @@ export async function createPost(
   type: 'image' | 'video',
   url: string,
   caption?: string,
-  stickers?: string[]
+  stickers?: string[],
+  mediaUrls?: string[]
 ): Promise<Post | null> {
   const { data, error } = await supabase
     .from('posts')
@@ -195,6 +197,7 @@ export async function createPost(
       user_id: userId,
       type,
       url,
+      media_urls: mediaUrls || [url], // Use provided array or wrap single url
       caption: caption || null,
       stickers: stickers || []
     })
