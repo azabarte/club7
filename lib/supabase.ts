@@ -191,16 +191,23 @@ export async function createPost(
   stickers?: string[],
   mediaUrls?: string[]
 ): Promise<Post | null> {
+  // Build insert object - only include media_urls if provided (for backward compatibility)
+  const insertData: any = {
+    user_id: userId,
+    type,
+    url,
+    caption: caption || null,
+    stickers: stickers || []
+  };
+
+  // Only add media_urls if provided (column may not exist yet)
+  if (mediaUrls && mediaUrls.length > 0) {
+    insertData.media_urls = mediaUrls;
+  }
+
   const { data, error } = await supabase
     .from('posts')
-    .insert({
-      user_id: userId,
-      type,
-      url,
-      media_urls: mediaUrls || [url], // Use provided array or wrap single url
-      caption: caption || null,
-      stickers: stickers || []
-    })
+    .insert(insertData)
     .select()
     .single();
 
