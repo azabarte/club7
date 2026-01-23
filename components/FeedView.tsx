@@ -191,8 +191,49 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
   if (isLoading) {
     return (
-      <div className="pb-24 pt-20 px-4 flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      <div className="pb-24 pt-20 px-4 space-y-6 overflow-y-auto h-full">
+        {/* Skeleton for Stories */}
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-2 min-w-[80px]">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 animate-pulse" />
+              <div className="w-14 h-3 bg-gray-200 rounded-full animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        {/* Skeleton for Header */}
+        <div className="flex items-center gap-2 px-2 mb-2">
+          <div className="h-7 w-28 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-9 w-9 bg-gray-200 rounded-full animate-pulse" />
+        </div>
+
+        {/* Skeleton for Posts */}
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Skeleton Header */}
+            <div className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" />
+                <div className="h-2 w-16 bg-gray-100 rounded-full animate-pulse" />
+              </div>
+              <div className="w-6 h-6 bg-gray-100 rounded-full animate-pulse" />
+            </div>
+            {/* Skeleton Image */}
+            <div className="aspect-[4/5] bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 animate-pulse" />
+            {/* Skeleton Actions */}
+            <div className="p-4 space-y-3">
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="w-12 h-10 bg-gray-100 rounded-full animate-pulse" />
+                ))}
+              </div>
+              <div className="h-3 w-3/4 bg-gray-100 rounded-full animate-pulse" />
+              <div className="h-3 w-1/2 bg-gray-100 rounded-full animate-pulse" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -303,8 +344,8 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
             }}
             data-post-id={post.id}
             className={`bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 ease-out ${isVisible
-                ? 'opacity-100 scale-100 shadow-lg shadow-indigo-500/10'
-                : 'opacity-0 scale-[0.96] shadow-sm translate-y-4'
+              ? 'opacity-100 scale-100 shadow-lg shadow-indigo-500/10'
+              : 'opacity-0 scale-[0.96] shadow-sm translate-y-4'
               }`}
           >
             <div className="relative aspect-[4/5] bg-gray-100">
@@ -326,7 +367,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                   </div>
                 </>
               ) : (
-                <img src={getOptimizedUrl(post.url, 800)} alt="Post" className="w-full h-full object-cover" />
+                <img src={getOptimizedUrl(post.url, 800)} alt="Post" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               )}
 
               {/* Header Overlay (User Info) */}
@@ -337,6 +378,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                       src={author?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${author?.name || 'user'}`}
                       alt={author?.name || 'Usuario'}
                       className="w-9 h-9 rounded-full object-cover border-2 border-black"
+                      loading="lazy"
                     />
                   </div>
                   <div className="text-left drop-shadow-md">
@@ -486,6 +528,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                             className="w-9 h-9 rounded-full border border-gray-100 shadow-sm"
                             alt={member.name}
                             title={member.name}
+                            loading="lazy"
                           />
                           <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-[2px] shadow-sm text-[10px] leading-none">
                             {emoji}
@@ -511,6 +554,7 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
                           src={commentAuthor?.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${commentAuthor?.name || 'user'}`}
                           className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
                           alt=""
+                          loading="lazy"
                         />
                         <div className="flex-1">
                           <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-2 inline-block max-w-full">
