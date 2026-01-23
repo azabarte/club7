@@ -42,6 +42,7 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const [caption, setCaption] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('none');
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<'capture' | 'edit'>('capture');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -155,6 +156,8 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
   const takePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
+    setIsProcessing(true);
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
@@ -197,11 +200,16 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        // Use blob URL directly for instant preview (instead of slow toDataURL)
+        const previewUrl = URL.createObjectURL(blob);
         setSelectedFiles([file]);
-        setPreviews([canvas.toDataURL('image/jpeg', 0.75)]);
+        setPreviews([previewUrl]);
         setCurrentPreviewIndex(0);
+        setIsProcessing(false);
         setStep('edit');
         stopCamera();
+      } else {
+        setIsProcessing(false);
       }
     }, 'image/jpeg', 0.75);
   };
@@ -309,57 +317,68 @@ const CameraView: React.FC<CameraViewProps> = ({ onClose, onCapture, mode = 'pos
                 </div>
               </div>
             ) : (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
-                  filter: currentFilter?.css || 'none'
-                }}
-              />
-            )}
+              <>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{
+                    transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+                    filter: currentFilter?.css || 'none'
+                  }}
+                />
 
-            {isRecording && (
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur-md px-5 py-2 rounded-full flex items-center gap-3 border border-red-400 shadow-lg animate-pulse">
-                <div className="w-2.5 h-2.5 bg-white rounded-full" />
-                <span className="text-white font-black text-sm tracking-tighter">{formatTime(recordingTime)}</span>
-              </div>
-            )}
+                {/* Processing overlay */}
+                {isProcessing && (
+                  <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                    <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
+                    <p className="text-white font-bold text-lg">Procesando foto...</p>
+                    <p className="text-white/60 text-sm mt-1">Espera un momento</p>
+                  </div>
+                )}
 
-            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start pt-12 z-20">
-              <button onClick={handleBack} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
-                <X size={24} />
-              </button>
-              <div className="flex gap-3">
-                <button onClick={toggleFlash} className={`bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/10 transition-all ${flashOn ? 'text-yellow-400' : 'text-white'}`}>
-                  <Zap size={22} />
-                </button>
-                <button onClick={toggleCamera} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
-                  <RefreshCcw size={22} />
-                </button>
-              </div>
-            </div>
+                {isRecording && (
+                  <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-600/90 backdrop-blur-md px-5 py-2 rounded-full flex items-center gap-3 border border-red-400 shadow-lg animate-pulse">
+                    <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                    <span className="text-white font-black text-sm tracking-tighter">{formatTime(recordingTime)}</span>
+                  </div>
+                )}
 
-            <div className="absolute bottom-6 left-0 right-0 px-4 z-20">
-              <div className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                {filters.map(filter => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setSelectedFilter(filter.id)}
-                    className={`min-w-[56px] h-14 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${selectedFilter === filter.id
-                      ? 'bg-white text-black border-white scale-110 shadow-xl'
-                      : 'bg-black/40 text-white border-white/20'
-                      }`}
-                  >
-                    <span className="text-xl">{filter.name}</span>
-                    <span className="text-[8px] font-black uppercase tracking-tight opacity-50">{filter.id}</span>
+                <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start pt-12 z-20">
+                  <button onClick={handleBack} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
+                    <X size={24} />
                   </button>
-                ))}
-              </div>
-            </div>
+                  <div className="flex gap-3">
+                    <button onClick={toggleFlash} className={`bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/10 transition-all ${flashOn ? 'text-yellow-400' : 'text-white'}`}>
+                      <Zap size={22} />
+                    </button>
+                    <button onClick={toggleCamera} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white border border-white/10 hover:bg-white/20 transition-all">
+                      <RefreshCcw size={22} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-6 left-0 right-0 px-4 z-20">
+                  <div className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar pb-2">
+                    {filters.map(filter => (
+                      <button
+                        key={filter.id}
+                        onClick={() => setSelectedFilter(filter.id)}
+                        className={`min-w-[56px] h-14 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${selectedFilter === filter.id
+                          ? 'bg-white text-black border-white scale-110 shadow-xl'
+                          : 'bg-black/40 text-white border-white/20'
+                          }`}
+                      >
+                        <span className="text-xl">{filter.name}</span>
+                        <span className="text-[8px] font-black uppercase tracking-tight opacity-50">{filter.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black relative">
