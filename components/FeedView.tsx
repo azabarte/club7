@@ -18,7 +18,9 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [expandedCaptions, setExpandedCaptions] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visiblePosts, setVisiblePosts] = useState<Set<string>>(new Set());
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const postRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const toggleCaption = (postId: string) => {
     setExpandedCaptions(prev => ({ ...prev, [postId]: !prev[postId] }));
@@ -95,6 +97,33 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
 
     videoRefs.current.forEach((video) => {
       observer.observe(video);
+    });
+
+    return () => observer.disconnect();
+  }, [posts]);
+
+  // Post scroll animation (Scale + Fade + Shadow effect)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const postId = entry.target.getAttribute('data-post-id');
+          if (postId) {
+            setVisiblePosts(prev => {
+              const newSet = new Set(prev);
+              if (entry.isIntersecting) {
+                newSet.add(postId);
+              }
+              return newSet;
+            });
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    postRefs.current.forEach((element) => {
+      observer.observe(element);
     });
 
     return () => observer.disconnect();
@@ -264,8 +293,20 @@ const FeedView: React.FC<FeedViewProps> = ({ posts, onUserClick }) => {
         const reactorUsers = reactions.map(r => getMember(r.user_id)).filter((m): m is NonNullable<ReturnType<typeof getMember>> => Boolean(m));
         const uniqueReactorUsers = [...new Map(reactorUsers.map(u => [u.id, u])).values()];
 
+        const isVisible = visiblePosts.has(post.id);
+
         return (
-          <div key={post.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          <div
+            key={post.id}
+            ref={(el) => {
+              if (el) postRefs.current.set(post.id, el);
+            }}
+            data-post-id={post.id}
+            className={`bg-white rounded-3xl border border-gray-100 overflow-hidden transition-all duration-500 ease-out ${isVisible
+                ? 'opacity-100 scale-100 shadow-lg shadow-indigo-500/10'
+                : 'opacity-0 scale-[0.96] shadow-sm translate-y-4'
+              }`}
+          >
             <div className="relative aspect-[4/5] bg-gray-100">
               {/* Media Content */}
               {post.type === 'video' ? (
