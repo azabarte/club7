@@ -81,6 +81,20 @@ export default defineConfig(({ mode }) => {
                   statuses: [0, 200]
                 }
               }
+            },
+            {
+              urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'cloudinary-media-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             }
           ]
         }

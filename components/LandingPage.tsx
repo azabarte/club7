@@ -102,6 +102,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         src={videoUrl}
         loop
         playsInline
+        preload="auto"
         muted={isMuted}
         className="absolute -top-4 left-1/2 -translate-x-1/2 w-[99%] h-[99%] object-contain"
       />
